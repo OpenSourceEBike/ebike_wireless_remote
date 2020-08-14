@@ -41,7 +41,7 @@
 #if NRF_MODULE_ENABLED(ANT_COMMON_PAGE_70)
 
 #include <string.h>
-#include "antplus_common_page_70.h"
+#include "ant_common_page_70.h"
 
 #define NRF_LOG_MODULE_NAME antplus_common_page_70
 #if ANT_COMMON_PAGE_70_LOG_ENABLED

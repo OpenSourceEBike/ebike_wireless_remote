@@ -14,8 +14,7 @@
 #include "antplus_controls_pages.h"
 #include "antplus_controls.h"
 #include "app_error.h"
-
-#define COMMON_DATA_INTERVAL 20          /**< Common data page is sent every 20th message. */
+#include "pins.h"
 
 typedef struct
 {
@@ -28,8 +27,8 @@ static ret_code_t antplus_controls_init(antplus_controls_profile_t          * p_
 {
     p_profile->channel_number = p_channel_config->channel_number;
 
-    p_profile->page_17 = DEFAULT_ANTPLUS_CONTROLS_PAGE17();
-    p_profile->page_17 = DEFAULT_ANTPLUS_CONTROLS_PAGE82();
+    p_profile->page_73 = DEFAULT_ANTPLUS_CONTROLS_PAGE73();
+    p_profile->page_82 = DEFAULT_ANTPLUS_CONTROLS_PAGE82();
     p_profile->page_80 = DEFAULT_ANT_COMMON_page80();
     p_profile->page_81 = DEFAULT_ANT_COMMON_page81();
 
@@ -61,48 +60,45 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t * p_profile,
 
 static void sens_message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
 {
-    antplus_controls_message_layout_t * p_CONTROLS_message_payload =
-        (antplus_controls_message_layout_t *)p_message_payload;
+  antplus_controls_message_layout_t * p_controls_message_payload =
+      (antplus_controls_message_layout_t *)p_message_payload;
 
-    switch (p_CONTROLS_message_payload->page_number)
-    {
-        case ANTPLUS_CONTROLS_PAGE_17:
-            antplus_controls_page_17_encode(p_CONTROLS_message_payload->page_payload, &(p_profile->page_17),
-                                  &(p_profile->common));
-            break;
+  antplus_controls_page_t page_number = 0;
 
-        case ANTPLUS_CONTROLS_PAGE_80:
-            antplus_common_page_80_encode(p_CONTROLS_message_payload->page_payload, &(p_profile->page_80));
-            break;
+  if (ant_request_controller_pending_get(&(p_profile->_cb.p_sens_cb->req_controller), (uint8_t *)&page_number))
+  {
+    // No implementation needed
+  }
+  else
+  {
+    // send page 73 if buttons
+    if (g_buttons)
+      page_number = ANTPLUS_CONTROLS_PAGE_73;
+  }
 
-        case ANTPLUS_CONTROLS_PAGE_81:
-            antplus_common_page_81_encode(p_CONTROLS_message_payload->page_payload, &(p_profile->page_81));
-            break;
+  switch (page_number)
+  {
+      case ANTPLUS_CONTROLS_PAGE_73:
+          antplus_controls_page_73_encode(p_controls_message_payload->page_payload, &(p_profile->page_73));
+          break;
 
-        default:
-            return;
-    }
+      case ANTPLUS_CONTROLS_PAGE_82:
+          antplus_controls_page_82_encode(p_controls_message_payload->page_payload, &(p_profile->page_82));
+      break;
 
-    p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_CONTROLS_message_payload->page_number);
-}
+      case ANTPLUS_CONTROLS_PAGE_80:
+          antplus_common_page_80_encode(p_controls_message_payload->page_payload, &(p_profile->page_80));
+          break;
 
-static void disp_message_decode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
-{
-    const antplus_controls_message_layout_t * p_CONTROLS_message_payload =
-        (antplus_controls_message_layout_t *)p_message_payload;
+      case ANTPLUS_CONTROLS_PAGE_81:
+          antplus_common_page_81_encode(p_controls_message_payload->page_payload, &(p_profile->page_81));
+          break;
 
-    switch (p_CONTROLS_message_payload->page_number)
-    {
-        case ANTPLUS_CONTROLS_PAGE_16:
-            antplus_controls_page_16_decode(p_CONTROLS_message_payload->page_payload,
-                                  &(p_profile->page_16));
-            break;
+      default:
+          return;
+  }
 
-        default:
-            return;
-    }
-
-    p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_CONTROLS_message_payload->page_number);
+  p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_controls_message_payload->page_number);
 }
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
@@ -144,7 +140,8 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
                  || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID
                  || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BURST_DATA_ID)
                 {
-                    disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
+                  // do not process any received message
+                  // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
                 }
                 break;
 

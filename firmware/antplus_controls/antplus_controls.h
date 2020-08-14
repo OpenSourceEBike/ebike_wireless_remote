@@ -56,15 +56,14 @@ static const antplus_controls_sens_config_t  CONCAT_2(NAME,_profile_CONTROLS_SEN
 #define CONTROLS_SENS_PROFILE_CONFIG(NAME) &CONCAT_2(NAME,_profile_CONTROLS_SENS_config)
 
 typedef enum{
-    ANTPLUS_CONTROLS_PAGE_17  = 17,
+    ANTPLUS_CONTROLS_PAGE_73  = 73,
     ANTPLUS_CONTROLS_PAGE_82  = 82,
-    ANTPLUS_CONTROLS_PAGE_70 = ANT_COMMON_PAGE_70,
     ANTPLUS_CONTROLS_PAGE_80 = ANT_COMMON_PAGE_80,
     ANTPLUS_CONTROLS_PAGE_81 = ANT_COMMON_PAGE_81,
 } antplus_controls_page_t;
 
 typedef enum{
-    ANTPLUS_CONTROLS_PAGE_17_UPDATED  = ANTPLUS_CONTROLS_PAGE_17,
+    ANTPLUS_CONTROLS_PAGE_73_UPDATED  = ANTPLUS_CONTROLS_PAGE_73,
     ANTPLUS_CONTROLS_PAGE_82_UPDATED  = ANTPLUS_CONTROLS_PAGE_82,
     ANTPLUS_CONTROLS_PAGE_80_UPDATED = ANTPLUS_CONTROLS_PAGE_80,
     ANTPLUS_CONTROLS_PAGE_81_UPDATED = ANTPLUS_CONTROLS_PAGE_81,
@@ -98,7 +97,7 @@ struct antplus_controls_profile_s
         antplus_controls_sens_cb_t * p_sens_cb;
     } _cb;                                      ///< Pointer to internal control block.
     antplus_controls_evt_handler_t  evt_handler;    ///< Event handler to be called for handling events in the LEV profile.
-    antplus_controls_page_17_data_t page_17;         ///< Page 17.
+    antplus_controls_page_73_data_t page_73;         ///< Page 73.
     antplus_controls_page_82_data_t page_82;        ///< Page 82.
     antplus_common_page80_data_t    page_80;        ///< Page 80.
     antplus_common_page81_data_t    page_81;        ///< Page 81.
@@ -109,8 +108,6 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t           * p_p
                              antplus_controls_sens_config_t const * p_sens_config);
 
 ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile);
-
-ret_code_t antplus_controls_page_request(antplus_controls_profile_t * p_profile, antplus_common_page70_data_t * p_page_70);
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context);
 

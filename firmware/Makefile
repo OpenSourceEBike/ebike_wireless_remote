@@ -59,12 +59,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ant/ant_channel_config/ant_channel_config.c \
   $(SDK_ROOT)/components/ant/ant_key_manager/ant_key_manager.c \
   $(SDK_ROOT)/components/ant/ant_state_indicator/ant_state_indicator.c \
-  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/antplus_common_page_70.c \
-  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/antplus_common_page_80.c \
-  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/antplus_common_page_81.c \
+  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_70.c \
+  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_80.c \
+  $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_81.c \
   $(PROJ_DIR)/antplus_controls/antplus_controls.c \
-  $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_17.c \
-  $(PROJ_DIR)/antplus_controls/pages/antplus_controls_common_data.c \
+  $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_73.c \
+  $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_82.c \
   $(PROJ_DIR)/pins.c \
   $(PROJ_DIR)/main.c \
 
@@ -116,6 +116,7 @@ INC_FOLDERS += \
   $(PROJ_DIR)/antplus_controls \
   $(PROJ_DIR)/antplus_controls/pages \
   $(PROJ_DIR)/config \
+	$(PROJ_DIR)/ \
 
 # Libraries common to all targets
 LIB_FILES += \

@@ -31,7 +31,7 @@
 #define CHAN_ID_TRANS_TYPE 0 // for pairing
 #define CHAN_ID_DEV_NUM 0
 #define ANTPLUS_NETWORK_NUM 0
-#define antplus_controls_ANT_OBSERVER_PRIO 1
+#define ANTPLUS_CONTROLS_ANT_OBSERVER_PRIO 1
 
 void antplus_controls_evt_handler(antplus_controls_profile_t * p_profile, antplus_controls_evt_t event);
 
@@ -51,16 +51,36 @@ uint16_t cnt_1;
 
 void antplus_controls_evt_handler(antplus_controls_profile_t * p_profile, antplus_controls_evt_t event)
 {
-    nrf_pwr_mgmt_feed();
+  nrf_pwr_mgmt_feed();
 
-    switch (event)
-    {
-        case ANTPLUS_CONTROLS_PAGE_17_UPDATED:
-            break;
+  static uint32_t buttons_not_set = 1;
 
-        default:
-            break;
-    }
+  // reset buttons_not_set when all of them are released
+  if (buttons_not_set == 0) {
+    if ((button_plus_state() == false) &&
+        (button_minus_state() == false) &&
+        (button_enter_state() == false) &&
+        (button_standby_state() == false))
+      buttons_not_set = 1;
+  }
+
+  switch (event)
+  {
+    case ANTPLUS_CONTROLS_PAGE_73_UPDATED:
+      if (buttons_not_set) {
+        if (button_plus_state()) {
+          g_buttons = BUTTON_PLUS;
+        } else if (button_minus_state()) {
+          g_buttons = BUTTON_MINUS;
+        } 
+
+        buttons_not_set = 0;
+      }
+      break;
+
+    default:
+      break;
+  }
 }
 
 static void profile_setup(void)
@@ -73,9 +93,7 @@ static void profile_setup(void)
     APP_ERROR_CHECK(err_code);
 
     // fill battery status data page.
-    m_antplus_controls.page_82 = ANT_COMMON_page82(CONTROLS_HW_REVISION,
-                                          CONTROLS_MANUFACTURER_ID,
-                                          CONTROLS_MODEL_NUMBER);
+    m_antplus_controls.page_82 = ANTPLUS_CONTROLS_PAGE82(295); // battery 2.95 volts, fully charged
 
     // fill manufacturer's common data page.
     m_antplus_controls.page_80 = ANT_COMMON_page80(CONTROLS_HW_REVISION,

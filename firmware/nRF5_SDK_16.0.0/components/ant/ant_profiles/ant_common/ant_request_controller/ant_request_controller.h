@@ -49,7 +49,7 @@
 #ifndef ANT_REQUEST_CONTROLLER_H__
 #define ANT_REQUEST_CONTROLLER_H__
 #include <stdbool.h>
-#include "antplus_common_page_70.h"
+#include "ant_common_page_70.h"
 #include "nrf_sdh_ant.h"
 
 #ifdef __cplusplus

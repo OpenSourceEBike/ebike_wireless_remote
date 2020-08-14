@@ -40,7 +40,7 @@
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(ANT_COMMON_PAGE_81)
 
-#include "antplus_common_page_81.h"
+#include "ant_common_page_81.h"
 
 #define NRF_LOG_MODULE_NAME antplus_common_page_81
 #if ANT_COMMON_PAGE_81_LOG_ENABLED

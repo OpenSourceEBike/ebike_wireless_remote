@@ -1,0 +1,37 @@
+/*
+ * TSDZ2 EBike wireless firmware
+ *
+ * Copyright (C) Casainho, 2020
+ *
+ * Released under the GPL License, Version 3
+ */
+
+#include <stdint.h>
+#include "antplus_controls_page_73.h"
+
+typedef struct
+{
+  uint8_t serial_number_lsb;
+  uint8_t serial_number_msb;
+  uint8_t sequence;
+  uint8_t utf8_character_lsb;
+  uint8_t utf8_character_1;
+  uint8_t utf8_character_2;
+  uint8_t utf8_character_msb;
+} antplus_controls_page_73_data_layout_t;
+
+void antplus_controls_page_73_encode(uint8_t * p_page_buffer,
+                           antplus_controls_page_73_data_t const * p_page_data)
+{
+  static uint8_t sequence_number = 0;
+
+  antplus_controls_page_73_data_layout_t * p_outcoming_data = (antplus_controls_page_73_data_layout_t *)p_page_buffer;
+
+  p_outcoming_data->serial_number_lsb = 0xff;
+  p_outcoming_data->serial_number_msb = 0xff;
+  p_outcoming_data->sequence = sequence_number++;
+  p_outcoming_data->utf8_character_lsb = ((uint8_t) p_page_data->utf8_character) & 0xff;
+  p_outcoming_data->utf8_character_1 = ((uint8_t) (p_page_data->utf8_character >> 1)) & 0xff;
+  p_outcoming_data->utf8_character_2 = ((uint8_t) (p_page_data->utf8_character >> 2)) & 0xff;
+  p_outcoming_data->utf8_character_msb = ((uint8_t) (p_page_data->utf8_character >> 3)) & 0xff;
+}
