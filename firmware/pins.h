@@ -27,21 +27,10 @@
 // #define MOTOR_RX__PIN                       NRF_GPIO_PIN_MAP(0,24)
 // #endif
 
-typedef enum
-{
-  BUTTON_NONE = 0,
-  BUTTON_PLUS,
-  BUTTON_MINUS,
-  BUTTON_ENTER,
-  BUTTON_STANDBY,
-} button_type_t;
-
-extern button_type_t g_buttons;
-
 void pins_init(void);
-bool button_plus_state(void);
-bool button_minus_state(void);
-bool button_enter_state(void);
-bool button_standby_state(void);
+bool button_plus_is_set(void);
+bool button_minus_is_set(void);
+bool button_enter_is_set(void);
+bool button_standby_is_set(void);
 
 #endif /* PINS_H_ */

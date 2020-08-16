@@ -49,61 +49,50 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t * p_profile,
     p_profile->_cb.p_sens_cb = p_sens_config->p_cb;
     ant_request_controller_init(&(p_profile->_cb.p_sens_cb->req_controller));
 
-    p_profile->_cb.p_sens_cb->block_cnt    = 0;
-    p_profile->_cb.p_sens_cb->pag_2_34    = 0;
-    p_profile->_cb.p_sens_cb->pag_4_5    = 0;
-    p_profile->_cb.p_sens_cb->message_counter = 0;
     p_profile->_cb.p_sens_cb->common_page_number = ANTPLUS_CONTROLS_PAGE_80;
 
     return antplus_controls_init(p_profile, p_channel_config);
 }
 
-static void sens_message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
+static bool sens_message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
 {
+  bool res = false;
   antplus_controls_message_layout_t * p_controls_message_payload =
       (antplus_controls_message_layout_t *)p_message_payload;
-
   antplus_controls_page_t page_number = 0;
 
-  if (ant_request_controller_pending_get(&(p_profile->_cb.p_sens_cb->req_controller), (uint8_t *)&page_number))
-  {
-    // No implementation needed
-  }
-  else
-  {
-    // send page 73 if buttons
-    if (g_buttons)
-      page_number = ANTPLUS_CONTROLS_PAGE_73;
-  }
-
+  ant_request_controller_pending_get(&(p_profile->_cb.p_sens_cb->req_controller), (uint8_t *)&page_number);
   switch (page_number)
   {
-      case ANTPLUS_CONTROLS_PAGE_73:
-          antplus_controls_page_73_encode(p_controls_message_payload->page_payload, &(p_profile->page_73));
-          break;
-
       case ANTPLUS_CONTROLS_PAGE_82:
           antplus_controls_page_82_encode(p_controls_message_payload->page_payload, &(p_profile->page_82));
+          res = true;
       break;
 
       case ANTPLUS_CONTROLS_PAGE_80:
           antplus_common_page_80_encode(p_controls_message_payload->page_payload, &(p_profile->page_80));
+          res = true;
           break;
 
       case ANTPLUS_CONTROLS_PAGE_81:
           antplus_common_page_81_encode(p_controls_message_payload->page_payload, &(p_profile->page_81));
+          res = true;
           break;
 
       default:
-          return;
+          break;
   }
 
   p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_controls_message_payload->page_number);
+
+  return res;
 }
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
 {
-    ASSERT(p_context   != NULL);
+  bool res;
+
+    ASSERT(p_context != NULL);
     ASSERT(p_ant_evt != NULL);
     antplus_controls_profile_t * p_profile = (antplus_controls_profile_t *)p_context;
 
@@ -119,20 +108,22 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
             case EVENT_TX:
             case EVENT_TRANSFER_TX_FAILED:
             case EVENT_TRANSFER_TX_COMPLETED:
-                sens_message_encode(p_profile, p_message_payload);
-                if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
-                {
-                    err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
-                                                             sizeof(p_message_payload),
-                                                             p_message_payload);
+                res = sens_message_encode(p_profile, p_message_payload);
+                if (res) {
+                  if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
+                  {
+                      err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
+                                                              sizeof(p_message_payload),
+                                                              p_message_payload);
+                  }
+                  else
+                  {
+                      err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
+                                                            sizeof(p_message_payload),
+                                                            p_message_payload);
+                  }
+                  APP_ERROR_CHECK(err_code);
                 }
-                else
-                {
-                    err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
-                                                           sizeof(p_message_payload),
-                                                           p_message_payload);
-                }
-                APP_ERROR_CHECK(err_code);
                 break;
 
             case EVENT_RX:
@@ -142,6 +133,8 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
                 {
                   // do not process any received message
                   // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
+
+                  buttons_clock_pag73(p_profile);
                 }
                 break;
 
@@ -153,8 +146,74 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
 
 ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile)
 {
-  // send nothing as controls profile should send only on a request
+  ASSERT(p_profile != NULL);
 
-  (void) p_profile;
-  return NRF_SUCCESS;
+  // Fill tx buffer for the first frame
+  uint32_t err_code;
+  uint8_t  p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
+
+  sens_message_encode(p_profile, p_message_payload);
+  err_code =
+      sd_ant_broadcast_message_tx(p_profile->channel_number,
+                                  sizeof(p_message_payload),
+                                  p_message_payload);
+  APP_ERROR_CHECK(err_code);
+
+  return sd_ant_channel_open(p_profile->channel_number);
+}
+
+void buttons_clock_pag73(antplus_controls_profile_t * p_profile)
+{
+  ASSERT(p_profile != NULL);
+
+  bool send_page = false;
+  static bool buttons_not_set = false;
+
+  // reset buttons_not_set when all of them are released
+  if (buttons_not_set == false) {
+    if ((button_plus_is_set() == false) &&
+        (button_minus_is_set() == false) &&
+        (button_enter_is_set() == false) &&
+        (button_standby_is_set() == false))
+      buttons_not_set = true;
+  }
+
+  if (buttons_not_set) {
+    if (button_plus_is_set()) {
+      p_profile->page_73.utf8_character = 0;
+      send_page = true;
+    } else if (button_minus_is_set()) {
+      p_profile->page_73.utf8_character = 1;
+      send_page = true;
+    } 
+  }
+
+  if (send_page)
+  {
+    buttons_not_set = false;
+    send_page = false;
+
+    static uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE] = {
+      ANTPLUS_CONTROLS_PAGE_73,
+      0xff,
+      0xff,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00
+    };
+
+    antplus_controls_message_layout_t *p_controls_message_payload =
+        (antplus_controls_message_layout_t *)p_message_payload;
+
+    antplus_controls_page_73_encode(p_controls_message_payload->page_payload,
+     &(p_profile->page_73));
+
+    uint32_t err_code;
+    err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
+                                      sizeof(p_message_payload),
+                                      p_message_payload);
+    APP_ERROR_CHECK(err_code);
+  }
 }

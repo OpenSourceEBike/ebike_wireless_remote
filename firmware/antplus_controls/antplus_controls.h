@@ -18,20 +18,20 @@
 #include "antplus_controls_pages.h"
 #include "sdk_errors.h"
 
-#define CONTROLS_DEVICE_TYPE       0x14u // ANT+ LEV datasheet: Device type reserved for ANT+ LEV.
-#define CONTROLS_ANTPLUS_RF_FREQ   0x39u // ANT+ LEV datasheet: Frequency, decimal 57 / 0x39 (2457 MHz).
+#define CONTROLS_DEVICE_TYPE       0x10u // ANT+ controls datasheet: 16 (0x10) – indicates search for an ANT+ controllable device.
+#define CONTROLS_ANTPLUS_RF_FREQ   0x39u // ANT+ controls datasheet: Frequency, decimal 57 / 0x39 (2457 MHz).
 
 #define CONTROLS_MSG_PERIOD_4Hz    0x2000u // Message period, decimal 8192 (4.00 Hz).
 
 #define CONTROLS_EXT_ASSIGN        0x00 //< ANT ext assign (see Ext. Assign Channel Parameters in ant_parameters.h: @ref ant_parameters).
-#define CONTROLS_SENS_CHANNEL_TYPE CHANNEL_TYPE_MASTER // TX LEV channel type.
+#define CONTROLS_SENS_CHANNEL_TYPE CHANNEL_TYPE_SLAVE // TX controls channel type.
 
 #define CONTROLS_SENS_CHANNEL_CONFIG_DEF(NAME,                                       \
                                     CHANNEL_NUMBER,                             \
                                     TRANSMISSION_TYPE,                          \
                                     DEVICE_NUMBER,                              \
                                     NETWORK_NUMBER)                             \
-static const ant_channel_config_t   CONCAT_2(NAME,_channel_CONTROLS_SENS_config) =   \
+static const ant_channel_config_t   CONCAT_2(NAME,_channel_controls_sens_config) =   \
     {                                                                           \
         .channel_number     = (CHANNEL_NUMBER),                                 \
         .channel_type       = CONTROLS_SENS_CHANNEL_TYPE,                          \
@@ -43,17 +43,17 @@ static const ant_channel_config_t   CONCAT_2(NAME,_channel_CONTROLS_SENS_config)
         .channel_period     = CONTROLS_MSG_PERIOD_4Hz,                               \
         .network_number     = (NETWORK_NUMBER),                                 \
     }
-#define CONTROLS_SENS_CHANNEL_CONFIG(NAME) &CONCAT_2(NAME,_channel_CONTROLS_SENS_config)
+#define CONTROLS_SENS_CHANNEL_CONFIG(NAME) &CONCAT_2(NAME,_channel_controls_sens_config)
 
 #define CONTROLS_SENS_PROFILE_CONFIG_DEF(NAME,                                       \
                                     EVT_HANDLER)                                \
-static antplus_controls_sens_cb_t            CONCAT_2(NAME,_CONTROLS_SENS_cb);                \
-static const antplus_controls_sens_config_t  CONCAT_2(NAME,_profile_CONTROLS_SENS_config) =   \
+static antplus_controls_sens_cb_t            CONCAT_2(NAME,_controls_sens_cb);                \
+static const antplus_controls_sens_config_t  CONCAT_2(NAME,_profile_controls_sens_config) =   \
     {                                                                           \
-        .p_cb                       = &CONCAT_2(NAME,_CONTROLS_SENS_cb),             \
+        .p_cb                       = &CONCAT_2(NAME,_controls_sens_cb),             \
         .evt_handler                = (EVT_HANDLER),                            \
     }
-#define CONTROLS_SENS_PROFILE_CONFIG(NAME) &CONCAT_2(NAME,_profile_CONTROLS_SENS_config)
+#define CONTROLS_SENS_PROFILE_CONFIG(NAME) &CONCAT_2(NAME,_profile_controls_sens_config)
 
 typedef enum{
     ANTPLUS_CONTROLS_PAGE_73  = 73,
@@ -110,6 +110,8 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t           * p_p
 ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile);
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context);
+
+void buttons_clock_pag73(antplus_controls_profile_t * p_profile);
 
 #ifdef __cplusplus
 }

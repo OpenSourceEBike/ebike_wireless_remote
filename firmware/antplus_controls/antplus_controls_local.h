@@ -18,12 +18,8 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t                  block_cnt;
-    bool                     pag_2_34;
-    bool                     pag_4_5;
-    antplus_controls_page_t  common_page_number;
-    uint8_t                  message_counter;
-    ant_request_controller_t req_controller;
+  antplus_controls_page_t  common_page_number;
+  ant_request_controller_t req_controller;
 } antplus_controls_sens_cb_t;
 
 #ifdef __cplusplus

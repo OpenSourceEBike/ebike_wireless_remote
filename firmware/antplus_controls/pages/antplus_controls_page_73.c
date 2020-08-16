@@ -23,13 +23,9 @@ typedef struct
 void antplus_controls_page_73_encode(uint8_t * p_page_buffer,
                            antplus_controls_page_73_data_t const * p_page_data)
 {
-  static uint8_t sequence_number = 0;
-
   antplus_controls_page_73_data_layout_t * p_outcoming_data = (antplus_controls_page_73_data_layout_t *)p_page_buffer;
 
-  p_outcoming_data->serial_number_lsb = 0xff;
-  p_outcoming_data->serial_number_msb = 0xff;
-  p_outcoming_data->sequence = sequence_number++;
+  p_outcoming_data->sequence++;
   p_outcoming_data->utf8_character_lsb = ((uint8_t) p_page_data->utf8_character) & 0xff;
   p_outcoming_data->utf8_character_1 = ((uint8_t) (p_page_data->utf8_character >> 1)) & 0xff;
   p_outcoming_data->utf8_character_2 = ((uint8_t) (p_page_data->utf8_character >> 2)) & 0xff;

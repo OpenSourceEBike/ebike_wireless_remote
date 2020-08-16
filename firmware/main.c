@@ -53,29 +53,12 @@ void antplus_controls_evt_handler(antplus_controls_profile_t * p_profile, antplu
 {
   nrf_pwr_mgmt_feed();
 
-  static uint32_t buttons_not_set = 1;
 
-  // reset buttons_not_set when all of them are released
-  if (buttons_not_set == 0) {
-    if ((button_plus_state() == false) &&
-        (button_minus_state() == false) &&
-        (button_enter_state() == false) &&
-        (button_standby_state() == false))
-      buttons_not_set = 1;
-  }
 
   switch (event)
   {
     case ANTPLUS_CONTROLS_PAGE_73_UPDATED:
-      if (buttons_not_set) {
-        if (button_plus_state()) {
-          g_buttons = BUTTON_PLUS;
-        } else if (button_minus_state()) {
-          g_buttons = BUTTON_MINUS;
-        } 
 
-        buttons_not_set = 0;
-      }
       break;
 
     default:
@@ -144,6 +127,8 @@ int main(void)
         cnt_1 += 3;
         cnt_2++;
         __asm__("nop");
+
+        // buttons_clock_pag73(&m_antplus_controls);
 
         NRF_LOG_FLUSH();
         // nrf_pwr_mgmt_run();
