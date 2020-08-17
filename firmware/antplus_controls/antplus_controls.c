@@ -54,94 +54,90 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t * p_profile,
     return antplus_controls_init(p_profile, p_channel_config);
 }
 
-static bool sens_message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
+static antplus_controls_page_t sens_message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_message_payload)
 {
-  bool res = false;
   antplus_controls_message_layout_t * p_controls_message_payload =
-      (antplus_controls_message_layout_t *)p_message_payload;
+    (antplus_controls_message_layout_t *)p_message_payload;
   antplus_controls_page_t page_number = 0;
 
   ant_request_controller_pending_get(&(p_profile->_cb.p_sens_cb->req_controller), (uint8_t *)&page_number);
   switch (page_number)
   {
-      case ANTPLUS_CONTROLS_PAGE_82:
-          antplus_controls_page_82_encode(p_controls_message_payload->page_payload, &(p_profile->page_82));
-          res = true;
+    case ANTPLUS_CONTROLS_PAGE_82:
+      antplus_controls_page_82_encode(p_controls_message_payload->page_payload, &(p_profile->page_82));
       break;
 
-      case ANTPLUS_CONTROLS_PAGE_80:
-          antplus_common_page_80_encode(p_controls_message_payload->page_payload, &(p_profile->page_80));
-          res = true;
-          break;
+    case ANTPLUS_CONTROLS_PAGE_80:
+      antplus_common_page_80_encode(p_controls_message_payload->page_payload, &(p_profile->page_80));
+      break;
 
-      case ANTPLUS_CONTROLS_PAGE_81:
-          antplus_common_page_81_encode(p_controls_message_payload->page_payload, &(p_profile->page_81));
-          res = true;
-          break;
+    case ANTPLUS_CONTROLS_PAGE_81:
+      antplus_common_page_81_encode(p_controls_message_payload->page_payload, &(p_profile->page_81));
+      break;
 
-      default:
-          break;
+    default:
+      break;
   }
 
-  p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_controls_message_payload->page_number);
+  if (page_number != 0)
+    p_profile->evt_handler(p_profile, (antplus_controls_evt_t)p_controls_message_payload->page_number);
 
-  return res;
+  return page_number;
 }
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
 {
-  bool res;
+  ASSERT(p_context != NULL);
+  ASSERT(p_ant_evt != NULL);
+  antplus_controls_profile_t * p_profile = (antplus_controls_profile_t *)p_context;
 
-    ASSERT(p_context != NULL);
-    ASSERT(p_ant_evt != NULL);
-    antplus_controls_profile_t * p_profile = (antplus_controls_profile_t *)p_context;
-
-    if (p_ant_evt->channel == p_profile->channel_number)
+  if (p_ant_evt->channel == p_profile->channel_number)
+  {
+    uint32_t err_code;
+    uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
+    antplus_controls_sens_cb_t * p_CONTROLS_cb = p_profile->_cb.p_sens_cb;
+    ant_request_controller_sens_evt_handler(&(p_CONTROLS_cb->req_controller), p_ant_evt);
+    antplus_controls_page_t page_number;
+    
+    switch (p_ant_evt->event)
     {
-        uint32_t err_code;
-        uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
-        antplus_controls_sens_cb_t * p_CONTROLS_cb = p_profile->_cb.p_sens_cb;
-        ant_request_controller_sens_evt_handler(&(p_CONTROLS_cb->req_controller), p_ant_evt);
+        case EVENT_TX:
+        case EVENT_TRANSFER_TX_FAILED:
+        case EVENT_TRANSFER_TX_COMPLETED:
+            page_number = sens_message_encode(p_profile, p_message_payload);
+            if (page_number != 0) {
+              if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
+              {
+                  err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
+                                                          sizeof(p_message_payload),
+                                                          p_message_payload);
+              }
+              else
+              {
+                  err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
+                                                        sizeof(p_message_payload),
+                                                        p_message_payload);
+              }
+              APP_ERROR_CHECK(err_code);
+            }
+            break;
 
-        switch (p_ant_evt->event)
-        {
-            case EVENT_TX:
-            case EVENT_TRANSFER_TX_FAILED:
-            case EVENT_TRANSFER_TX_COMPLETED:
-                res = sens_message_encode(p_profile, p_message_payload);
-                if (res) {
-                  if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
-                  {
-                      err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
-                                                              sizeof(p_message_payload),
-                                                              p_message_payload);
-                  }
-                  else
-                  {
-                      err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
-                                                            sizeof(p_message_payload),
-                                                            p_message_payload);
-                  }
-                  APP_ERROR_CHECK(err_code);
-                }
-                break;
+        case EVENT_RX:
+            if (p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BROADCAST_DATA_ID
+              || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID
+              || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BURST_DATA_ID)
+            {
+              // do not process any received message
+              // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
 
-            case EVENT_RX:
-                if (p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BROADCAST_DATA_ID
-                 || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID
-                 || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BURST_DATA_ID)
-                {
-                  // do not process any received message
-                  // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
+              buttons_clock_pag73(p_profile);
+            }
+            break;
 
-                  buttons_clock_pag73(p_profile);
-                }
-                break;
-
-            default:
-                break;
-        }
+        default:
+            break;
     }
+  }
 }
 
 ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile)
@@ -195,9 +191,9 @@ void buttons_clock_pag73(antplus_controls_profile_t * p_profile)
 
     static uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE] = {
       ANTPLUS_CONTROLS_PAGE_73,
-      0xff,
-      0xff,
+      0x01,
       0x00,
+      0x0F,
       0x00,
       0x00,
       0x00,

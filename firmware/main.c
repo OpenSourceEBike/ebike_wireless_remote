@@ -128,8 +128,6 @@ int main(void)
         cnt_2++;
         __asm__("nop");
 
-        // buttons_clock_pag73(&m_antplus_controls);
-
         NRF_LOG_FLUSH();
         // nrf_pwr_mgmt_run();
     }
