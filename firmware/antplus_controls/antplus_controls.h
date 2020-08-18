@@ -111,7 +111,7 @@ ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile);
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context);
 
-void buttons_clock_pag73(antplus_controls_profile_t * p_profile);
+bool buttons_clock_pag73(antplus_controls_profile_t * p_profile);
 
 #ifdef __cplusplus
 }
