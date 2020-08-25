@@ -49,7 +49,8 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-  $(SDK_ROOT)/components/libraries/bsp/bsp.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
+	$(SDK_ROOT)/components/libraries/button/app_button.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -67,6 +68,7 @@ SRC_FILES += \
   $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_82.c \
   $(PROJ_DIR)/pins.c \
   $(PROJ_DIR)/main.c \
+	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

@@ -11,14 +11,6 @@
 #include "nrf_gpio.h"
 #include "pins.h"
 
-void pins_init(void)
-{
-  nrf_gpio_cfg_input(PLUS__PIN, GPIO_PIN_CNF_PULL_Pullup);
-  nrf_gpio_cfg_input(MINUS__PIN, GPIO_PIN_CNF_PULL_Pullup);
-  nrf_gpio_cfg_input(ENTER__PIN, GPIO_PIN_CNF_PULL_Pullup);
-  nrf_gpio_cfg_input(STANDBY__PIN, GPIO_PIN_CNF_PULL_Pullup);
-}
-
 bool button_plus_is_set(void)
 {
   return (bool) !nrf_gpio_pin_read(PLUS__PIN);
