@@ -17,6 +17,7 @@
 #include "ant_request_controller.h"
 #include "antplus_controls_pages.h"
 #include "sdk_errors.h"
+#include "pins.h"
 
 #define CONTROLS_DEVICE_TYPE       0x10u // ANT+ controls datasheet: 16 (0x10) – indicates search for an ANT+ controllable device.
 #define CONTROLS_ANTPLUS_RF_FREQ   0x39u // ANT+ controls datasheet: Frequency, decimal 57 / 0x39 (2457 MHz).
@@ -111,7 +112,7 @@ ret_code_t antplus_controls_sens_open(antplus_controls_profile_t * p_profile);
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context);
 
-bool buttons_clock_pag73(antplus_controls_profile_t * p_profile);
+bool buttons_send_pag73(antplus_controls_profile_t * p_profile, button_pins_t button);
 
 #ifdef __cplusplus
 }

@@ -15,6 +15,10 @@
 #include "antplus_controls.h"
 #include "app_error.h"
 #include "pins.h"
+#include "app_button.h"
+#include "nrf_pwr_mgmt.h"
+
+extern void shutdown(void);
 
 typedef struct
 {
@@ -87,35 +91,22 @@ ret_code_t antplus_controls_sens_init(antplus_controls_profile_t * p_profile,
 //     return false;
 // }
 
-bool buttons_clock_pag73(antplus_controls_profile_t * p_profile)
+bool buttons_send_pag73(antplus_controls_profile_t * p_profile, button_pins_t button)
 {
   ASSERT(p_profile != NULL);
 
   bool send_page = false;
-  static bool buttons_not_set = false;
 
-  // reset buttons_not_set when all of them are released
-  if (buttons_not_set == false) {
-    if ((button_plus_is_set() == false) &&
-        (button_minus_is_set() == false) &&
-        (button_enter_is_set() == false) &&
-        (button_standby_is_set() == false))
-      buttons_not_set = true;
-  }
-
-  if (buttons_not_set) {
-    if (button_plus_is_set()) {
-      p_profile->page_73.utf8_character = 0;
-      send_page = true;
-    } else if (button_minus_is_set()) {
-      p_profile->page_73.utf8_character = 1;
-      send_page = true;
-    } 
-  }
+  if (button == MINUS__PIN) {
+    p_profile->page_73.utf8_character = 0;
+    send_page = true;
+  } else if (button == PLUS__PIN) {
+    p_profile->page_73.utf8_character = 1;
+    send_page = true;
+  } 
 
   if (send_page)
   {
-    buttons_not_set = false;
     send_page = false;
 
     static uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE] = {
@@ -139,14 +130,14 @@ bool buttons_clock_pag73(antplus_controls_profile_t * p_profile)
     err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
                                       sizeof(p_message_payload),
                                       p_message_payload);
-    APP_ERROR_CHECK(err_code);
+    (void) err_code; // ignore
+    // APP_ERROR_CHECK(err_code);
   }
 
   if (send_page)
     return true;
   else
     return false;
-  
 }
 
 void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
@@ -166,6 +157,11 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
             // nothing to do
             break;
 
+        case EVENT_RX_SEARCH_TIMEOUT:
+            // enter ultra low power mode
+            shutdown();
+            break;
+
         case EVENT_RX:
             if (p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BROADCAST_DATA_ID
               || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID
@@ -175,10 +171,10 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
               // uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
               // antplus_controls_sens_cb_t *p_CONTROLS_cb = p_profile->_cb.p_sens_cb;
 
-              bool buttons_page_sent = buttons_clock_pag73(p_profile);
+              // bool buttons_page_sent = buttons_clock_pag73(p_profile);
 
               // only look to send for requested pages if no button pages sent
-              if (buttons_page_sent == false) {
+              // if (buttons_page_sent == false) {
                 // ant_request_controller_sens_evt_handler(&(p_CONTROLS_cb->req_controller), p_ant_evt);
 
                 // bool page_encoded = message_encode(p_profile, p_message_payload);
@@ -198,7 +194,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t * p_ant_evt, void * p_context)
                 //   }                                                            
                 //   APP_ERROR_CHECK(err_code);
                 // }
-              }
+              // }
             }
             break;
 

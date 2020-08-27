@@ -14,10 +14,13 @@
 
 // NRF52840 MDK Dongle
 // #if defined(BOARD_CUSTOM) && defined(NRF52840_MDK_USB_DONGLE)
-#define PLUS__PIN             5
-#define MINUS__PIN            6
-#define ENTER__PIN            7
-#define STANDBY__PIN          8
+typedef enum {
+    PLUS__PIN  = 5,
+    MINUS__PIN  = 6,
+    ENTER__PIN = 7,
+    STANDBY__PIN = 8,
+    BUTTON_PIN_ELEMENTS = 4 // must be updated when added or removed an element
+} button_pins_t;
 // #endif
 
 // // NRF52840 Dongle (The Blue One)
