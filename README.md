@@ -4,7 +4,8 @@ This projects implements a wireless remote button for EBikes and GPS units like 
 
 See in action on this video:
 
-![https://www.youtube.com/watch?v=O67TSVkCuRM](https://img.youtube.com/vi/O67TSVkCuRM/hqdefault.jpg)
+[![video](https://img.youtube.com/vi/O67TSVkCuRM/hqdefault.jpg)](https://www.youtube.com/watch?v=O67TSVkCuRM)
+
 
 ## Current state
 2020.08.28:
@@ -30,4 +31,3 @@ See in action on this video:
 ## Firmware
 Flash the firmware with any tool that works for you. The firmware HEX file to flash is this one: [ebike_wireless_remote_with_sd-v1.hex](firmware/release/ebike_wireless_remote_with_sd-v1.hex)
 
-## 
