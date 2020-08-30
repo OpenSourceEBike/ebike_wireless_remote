@@ -1,6 +1,7 @@
 # EBike remote wireless
 
-This projects implements a wireless remote button for EBikes and GPS units like the Garmin Edge. You can buy on the market a ready product like this one - see the [Garmin EBike Remote for about 80€](https://buy.garmin.com/en-US/US/p/545795/pn/010-12094-30).
+This project implements a wireless remote button for EBikes and GPS units like the Garmin Edge. You can buy on the market a ready product like this one - see the [Garmin EBike Remote for about 80€](https://buy.garmin.com/en-US/US/p/545795/pn/010-12094-30).
+This wireless remote button implements the ANT+ controlls profile meaning it should work with any devices that support this - see the user manual of your device.
 
 See in action on this video:
 
