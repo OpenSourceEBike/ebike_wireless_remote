@@ -54,9 +54,9 @@
 #include "ant_sdm_page_16.h"
 #include "ant_sdm_page_22.h"
 #include "ant_sdm_common_data.h"
-#include "antplus_common_page_70.h"
-#include "antplus_common_page_80.h"
-#include "antplus_common_page_81.h"
+#include "ant_common_page_70.h"
+#include "ant_common_page_80.h"
+#include "ant_common_page_81.h"
 
 #ifdef __cplusplus
 extern "C" {

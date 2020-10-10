@@ -225,8 +225,8 @@ struct ant_sdm_profile_s
     ant_sdm_page2_data_t        page_2;         ///< Page 2.
     ant_sdm_page3_data_t        page_3;         ///< Page 3.
     ant_sdm_page22_data_t       page_22;        ///< Page 22.
-    antplus_common_page80_data_t    page_80;        ///< Page 80.
-    antplus_common_page81_data_t    page_81;        ///< Page 81.
+    ant_common_page80_data_t    page_80;        ///< Page 80.
+    ant_common_page81_data_t    page_81;        ///< Page 81.
     ant_sdm_common_data_t       common;         ///< SDM common data.
 };
 
@@ -302,7 +302,7 @@ ret_code_t ant_sdm_sens_open(ant_sdm_profile_t * p_profile);
  *
  * @retval     NRF_SUCCESS      If the request has been sent. Otherwise, an error code is returned.
  */
-ret_code_t ant_sdm_page_request(ant_sdm_profile_t * p_profile, antplus_common_page70_data_t * p_page_70);
+ret_code_t ant_sdm_page_request(ant_sdm_profile_t * p_profile, ant_common_page70_data_t * p_page_70);
 
 /**@brief Function for handling the Sensor ANT events.
  *

@@ -17,12 +17,12 @@ typedef struct
 } antplus_controls_page_73_data_t;
 
 #define DEFAULT_ANTPLUS_CONTROLS_PAGE73() \
-  (antplus_controls_page_73_data_t)      \
-  {                         \
-    .utf8_character = 0,    \
+  (antplus_controls_page_73_data_t)       \
+  {                                       \
+    .utf8_character = 0,                  \
   }
 
-void antplus_controls_page_73_encode(uint8_t * p_page_buffer,
-              antplus_controls_page_73_data_t const * p_page_data);
+void antplus_controls_page_73_encode(uint8_t *p_page_buffer,
+                                     antplus_controls_page_73_data_t const *p_page_data);
 
 #endif

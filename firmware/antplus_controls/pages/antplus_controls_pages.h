@@ -15,13 +15,12 @@
 #include "ant_common_page_81.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

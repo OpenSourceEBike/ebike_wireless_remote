@@ -337,7 +337,7 @@ ret_code_t nrf_pwr_mgmt_init(void)
     return PWR_MGMT_TIMER_CREATE();
 }
 
-void nrf_pwr_mgmt_run(void)
+void  nrf_pwr_mgmt_run(void)
 {
     PWR_MGMT_FPU_SLEEP_PREPARE();
     PWR_MGMT_SLEEP_LOCK_ACQUIRE();

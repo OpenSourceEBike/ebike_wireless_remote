@@ -53,8 +53,8 @@
 #include "ant_bpwr_page_17.h"       // Wheel Torque main data page.
 #include "ant_bpwr_page_18.h"       // Crank Torque main data page.
 #include "ant_bpwr_common_data.h"   // Instantaneous cadence data.
-#include "antplus_common_page_80.h"     // Manufacturer's information data page.
-#include "antplus_common_page_81.h"     // Product information data page.
+#include "ant_common_page_80.h"     // Manufacturer's information data page.
+#include "ant_common_page_81.h"     // Product information data page.
 
 #ifdef __cplusplus
 extern "C" {

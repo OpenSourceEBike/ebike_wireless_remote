@@ -236,8 +236,8 @@ struct ant_bpwr_profile_s
     ant_bpwr_page16_data_t   page_16;        ///< Page 16.
     ant_bpwr_page17_data_t   page_17;        ///< Page 17.
     ant_bpwr_page18_data_t   page_18;        ///< Page 18.
-    antplus_common_page80_data_t page_80;        ///< Page 80.
-    antplus_common_page81_data_t page_81;        ///< Page 81.
+    ant_common_page80_data_t page_80;        ///< Page 80.
+    ant_common_page81_data_t page_81;        ///< Page 81.
     ant_bpwr_common_data_t   common;         ///< BPWR common data.
 };
 

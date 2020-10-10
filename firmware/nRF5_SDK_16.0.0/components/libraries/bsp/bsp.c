@@ -69,11 +69,11 @@ APP_TIMER_DEF(m_bsp_button_tmr);
 static void bsp_button_event_handler(uint8_t pin_no, uint8_t button_action);
 #endif // BSP_SIMPLE
 
-#ifndef BSP_SIMPLE
+//#ifndef BSP_SIMPLE
 static const app_button_cfg_t app_buttons[BUTTONS_NUMBER] =
 {
     #ifdef BSP_BUTTON_0
-    {BSP_BUTTON_0, false, BUTTON_PULL, bsp_button_event_handler},
+    {BSP_BUTTON_0, false, BUTTON_PULL,0,bsp_button_event_handler},
     #endif // BUTTON_0
 
     #ifdef BSP_BUTTON_1
@@ -105,7 +105,7 @@ static const app_button_cfg_t app_buttons[BUTTONS_NUMBER] =
     #endif // BUTTON_7
 
 };
-#endif // BSP_SIMPLE
+//#endif // BSP_SIMPLE
 #endif // BUTTONS_NUMBER > 0
 
 #if (BUTTONS_NUMBER > 0)

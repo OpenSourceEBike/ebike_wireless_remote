@@ -80,8 +80,8 @@ typedef struct
 #define DEFAULT_ANT_COMMON_page80()     \
     (antplus_common_page80_data_t)          \
     {                                   \
-        .hw_revision     = 0x00,        \
-        .manufacturer_id = UINT8_MAX,   \
+        .hw_revision     = 0x01,        \
+        .manufacturer_id = 255,   \
         .model_number    = 0x00,        \
     }
 
@@ -90,9 +90,9 @@ typedef struct
 #define ANT_COMMON_page80(hw_rev, man_id, mod_num)  \
     (antplus_common_page80_data_t)                      \
     {                                               \
-        .hw_revision     = (hw_rev),                \
-        .manufacturer_id = (man_id),                \
-        .model_number    = (mod_num),               \
+        .hw_revision     = (0x02),                \
+        .manufacturer_id = (254),                \
+        .model_number    = (0),               \
     }
 
 /**@brief Function for encoding page 80.
