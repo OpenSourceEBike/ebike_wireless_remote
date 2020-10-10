@@ -236,11 +236,11 @@ static void sens_message_encode(ant_sdm_profile_t * p_profile, uint8_t * p_messa
             break;
 
         case ANT_SDM_PAGE_80:
-            antplus_common_page_80_encode(p_sdm_message_payload->page_payload, &(p_profile->page_80));
+            ant_common_page_80_encode(p_sdm_message_payload->page_payload, &(p_profile->page_80));
             break;
 
         case ANT_SDM_PAGE_81:
-            antplus_common_page_81_encode(p_sdm_message_payload->page_payload, &(p_profile->page_81));
+            ant_common_page_81_encode(p_sdm_message_payload->page_payload, &(p_profile->page_81));
             break;
 
         default:
@@ -354,11 +354,11 @@ static void disp_message_decode(ant_sdm_profile_t * p_profile, uint8_t * p_messa
             break;
 
         case ANT_SDM_PAGE_80:
-            antplus_common_page_80_decode(p_sdm_message_payload->page_payload, &(p_profile->page_80));
+            ant_common_page_80_decode(p_sdm_message_payload->page_payload, &(p_profile->page_80));
             break;
 
         case ANT_SDM_PAGE_81:
-            antplus_common_page_81_decode(p_sdm_message_payload->page_payload, &(p_profile->page_81));
+            ant_common_page_81_decode(p_sdm_message_payload->page_payload, &(p_profile->page_81));
             break;
 
         default:

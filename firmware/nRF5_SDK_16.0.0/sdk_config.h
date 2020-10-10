@@ -333,6 +333,15 @@
 #ifndef ANT_KEY_MANAGER_ENABLED
 #define ANT_KEY_MANAGER_ENABLED 1
 #endif
+// <e> ANT_STATE_INDICATOR_ENABLED - ant_state_indicator - ANT state indicator using BSP
+//==========================================================
+#ifndef ANT_STATE_INDICATOR_ENABLED
+#define ANT_STATE_INDICATOR_ENABLED 1
+#endif
+// <o> ANT_STATE_INDICATOR_CONFIG_SHUTDOWN_HANDLER_PRIORITY - Shutdown observer priority. 
+#ifndef ANT_STATE_INDICATOR_CONFIG_SHUTDOWN_HANDLER_PRIORITY
+#define ANT_STATE_INDICATOR_CONFIG_SHUTDOWN_HANDLER_PRIORITY 1
+#endif
 
 // </h> 
 //==========================================================
@@ -4774,7 +4783,7 @@
 //==========================================================
 // <o> NRF_SDH_ANT_TOTAL_CHANNELS_ALLOCATED - Allocated ANT channels. 
 #ifndef NRF_SDH_ANT_TOTAL_CHANNELS_ALLOCATED
-#define NRF_SDH_ANT_TOTAL_CHANNELS_ALLOCATED 1
+#define NRF_SDH_ANT_TOTAL_CHANNELS_ALLOCATED 2
 #endif
 
 // <o> NRF_SDH_ANT_ENCRYPTED_CHANNELS - Encrypted ANT channels. 

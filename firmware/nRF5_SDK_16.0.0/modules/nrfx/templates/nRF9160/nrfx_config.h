@@ -85,7 +85,7 @@
 // <2=> XTAL
 
 #ifndef NRFX_CLOCK_CONFIG_LF_SRC
-#define NRFX_CLOCK_CONFIG_LF_SRC 2
+#define NRFX_CLOCK_CONFIG_LF_SRC 1
 #endif
 
 // <o> NRFX_CLOCK_CONFIG_IRQ_PRIORITY  - Interrupt priority.

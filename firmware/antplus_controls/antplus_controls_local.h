@@ -13,18 +13,18 @@
 #include <stdbool.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct
-{
-  antplus_controls_page_t  common_page_number;
-  ant_request_controller_t req_controller;
-} antplus_controls_sens_cb_t;
+  typedef struct
+  {
+    antplus_controls_page_t common_page_number;
+    ant_request_controller_t req_controller;
+  } antplus_controls_sens_cb_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

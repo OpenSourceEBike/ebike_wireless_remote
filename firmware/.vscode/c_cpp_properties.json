@@ -18,9 +18,7 @@
                 "NRF52840_XXAA",
                 "NRF_SD_BLE_API_VERSION=6",
                 "S340",
-                "SOFTDEVICE_PRESENT",
-                "BUTTON",
-                "NRF_CLOCK"
+                "SOFTDEVICE_PRESENT"
             ],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",
             "cStandard": "c11",

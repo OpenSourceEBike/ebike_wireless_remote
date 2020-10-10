@@ -11,7 +11,7 @@
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/_build/ebike_wireless_remote.out",
+            "program": "${workspaceFolder}/_build/TSDZ2_wireless.out",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",            
@@ -30,7 +30,7 @@
             "customLaunchSetupCommands": [
                 {
                     "description": "Set remote target",
-                    "text": "file ${workspaceFolder}/_build/ebike_wireless_remote.out"
+                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless.out"
                 },
                 {
                     "description": "Set remote target",
@@ -44,7 +44,7 @@
                 },
                 {
                     "description": "Flash firmware",
-                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/ebike_wireless_remote_with_sd.hex"
+                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_with_SD.hex"
                 },
                 {
                     "description": "Start debug",
@@ -59,7 +59,7 @@
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/_build/ebike_wireless_remote.out",
+            "program": "${workspaceFolder}/_build/TSDZ2_wireless.out",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",            
@@ -78,7 +78,7 @@
             "customLaunchSetupCommands": [
                 {
                     "description": "Set remote target",
-                    "text": "file ${workspaceFolder}/_build/ebike_wireless_remote.out"
+                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless.out"
                 },
                 {
                     "description": "Set remote target",
@@ -96,5 +96,43 @@
                 }
             ]
         },
+        {
+            // Cortex Debug Configuration: https://marcelball.ca/projects/cortex-debug/cortex-debug-launch-configurations/
+            // Cannot attach to existing OpenOCD Server so have to halt previous first 
+            "name": "NRF52 Debug (Cortex)",
+            "type": "cortex-debug",
+            "request": "launch",
+            //  OpenOCD path is defined in workspace.code-workspace.
+            "executable": "${workspaceFolder}/_build/TSDZ2_wireless.out",
+            "servertype": "openocd",
+            "cwd": "${workspaceRoot}",
+            //  Application Executable to be flashed before debugging
+            "device": "nRF52840",
+            //  Arm System View Description, from apache-mynewt-core/hw/mcu/nordic/src/ext/nrfx/mdk
+            "svdFile": "${workspaceRoot}/nRF5_SDK_16.0.0/modules/nrfx/mdk/nrf52840.svd",
+            "configFiles": [ 
+                //  Tell OpenOCD to open the ST Link connection to nRF52 MCU.
+                "tools/openocd-v0.10.0-scripts/stlink-v2.cfg",
+                "tools/openocd-v0.10.0-scripts/nrf52.cfg",
+            ],
+            "preLaunchCommands": [
+                //  Before loading the Application, run these gdb commands.
+                //  Set timeout for executing openocd commands.
+                "set remotetimeout 60",
+
+                //  This indicates that an unrecognized breakpoint location should automatically result in a pending breakpoint being created.
+                // "set breakpoint pending on"
+            ],
+            "postLaunchCommands": [
+                //  After loading the Application, run these gdb commands
+                //  "break main",                   //  Break at main()
+                //  "break __assert_func",          //  Break for any assert failures
+                //  "break os_default_irq"          //  Break for any unhandled interrupts
+            ],
+            "preRestartCommands": [
+            ],
+            "postRestartCommands": [
+            ]        
+        }     
     ]
 }

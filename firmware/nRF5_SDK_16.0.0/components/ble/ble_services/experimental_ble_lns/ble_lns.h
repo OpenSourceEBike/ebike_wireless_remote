@@ -208,10 +208,10 @@ typedef enum
 /**@brief   Elevation source. */
 typedef enum
 {
-    BLE_LNS_ECONTROLS_SOURCE_POSITIONING_SYSTEM = 0,
-    BLE_LNS_ECONTROLS_SOURCE_BAROMETRIC         = 1,
-    BLE_LNS_ECONTROLS_SOURCE_DATABASE_SERVICE   = 2,
-    BLE_LNS_ECONTROLS_SOURCE_OTHER              = 3
+    BLE_LNS_ELEV_SOURCE_POSITIONING_SYSTEM = 0,
+    BLE_LNS_ELEV_SOURCE_BAROMETRIC         = 1,
+    BLE_LNS_ELEV_SOURCE_DATABASE_SERVICE   = 2,
+    BLE_LNS_ELEV_SOURCE_OTHER              = 3
 } ble_lns_elevation_source_t;
 
 /**@brief   Heading source. */

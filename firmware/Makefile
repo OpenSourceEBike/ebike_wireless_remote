@@ -1,12 +1,12 @@
-PROJECT_NAME     := ebike_wireless_remote
-TARGETS          := ebike_wireless_remote
+PROJECT_NAME     := TSDZ2_wireless
+TARGETS          := TSDZ2_wireless
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
 
-$(OUTPUT_DIRECTORY)/ebike_wireless_remote.out: \
-  LINKER_SCRIPT  := ebike_wireless_remote_gcc_nrf52.ld
+$(OUTPUT_DIRECTORY)/TSDZ2_wireless.out: \
+  LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
 SOFT_DEVICE = $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex
 
@@ -49,8 +49,8 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
-	$(SDK_ROOT)/components/libraries/button/app_button.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
+  $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -66,9 +66,21 @@ SRC_FILES += \
   $(PROJ_DIR)/antplus_controls/antplus_controls.c \
   $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_73.c \
   $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_82.c \
+  $(PROJ_DIR)/ant_lev/ant_lev.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_1.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_2.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_3.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_4.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_5.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_34.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_page_16.c \
+  $(PROJ_DIR)/ant_lev/pages/ant_lev_common_data.c \
   $(PROJ_DIR)/pins.c \
   $(PROJ_DIR)/main.c \
-	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
+  $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+  $(SDK_ROOT)/components/boards/boards.c \
+   
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -115,10 +127,13 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ant/ant_channel_config \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/ant_request_controller \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages \
+  $(PROJ_DIR)/ant_lev \
+  $(PROJ_DIR)/ant_lev/pages \
   $(PROJ_DIR)/antplus_controls \
   $(PROJ_DIR)/antplus_controls/pages \
-  $(PROJ_DIR)/config \
-	$(PROJ_DIR)/ \
+    $(PROJ_DIR)/config \
+  $(PROJ_DIR)/ \
+  $(SDK_ROOT)/integration/nrfx/legacy \
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -133,7 +148,7 @@ CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
-CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+# CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
 CFLAGS += -DNRF_SD_BLE_API_VERSION=6
@@ -174,10 +189,10 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-ebike_wireless_remote: CFLAGS += -D__HEAP_SIZE=8192
-ebike_wireless_remote: CFLAGS += -D__STACK_SIZE=8192
-ebike_wireless_remote: ASMFLAGS += -D__HEAP_SIZE=8192
-ebike_wireless_remote: ASMFLAGS += -D__STACK_SIZE=8192
+TSDZ2_wireless: CFLAGS += -D__HEAP_SIZE=8192
+TSDZ2_wireless: CFLAGS += -D__STACK_SIZE=8192
+TSDZ2_wireless: ASMFLAGS += -D__HEAP_SIZE=8192
+TSDZ2_wireless: ASMFLAGS += -D__STACK_SIZE=8192
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -187,11 +202,11 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: ebike_wireless_remote remote_with_sd
+default: TSDZ2_wireless TSDZ2_with_SD
 
 # We use srec_cat here but if you want to be able to use the combined hex file with nRF Connect you should use Nordic's mergehex tool
-remote_with_sd:
-	$(SREC_PATH)srec_cat $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/ebike_wireless_remote.hex -Intel -Output $(OUTPUT_DIRECTORY)/ebike_wireless_remote_with_sd.hex
+TSDZ2_with_SD:
+	$(SREC_PATH)srec_cat $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/TSDZ2_wireless.hex -Intel -Output $(OUTPUT_DIRECTORY)/TSDZ2_wireless_with_SD.hex
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -203,14 +218,14 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 # Flash the program
 flash: default
-	@echo Flashing: $(OUTPUT_DIRECTORY)/ebike_wireless_remote.hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/ebike_wireless_remote.hex --sectorerase
+	@echo Flashing: $(OUTPUT_DIRECTORY)/TSDZ2_REMOTE.hex
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/TSDZ2_REMOTE.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 erase:
 	nrfjprog -f nrf52 --eraseall
 
-SDK_CONFIG_FILE := ../config/sdk_config.h
+SDK_CONFIG_FILE := $(SDK_ROOT)/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)

@@ -20,14 +20,14 @@ typedef struct
   uint8_t descriptive_bit_field;
 } antplus_controls_page_82_data_layout_t;
 
-void antplus_controls_page_82_encode(uint8_t * p_page_buffer,
-                           antplus_controls_page_82_data_t const * p_page_data)
+void antplus_controls_page_82_encode(uint8_t *p_page_buffer,
+                                     antplus_controls_page_82_data_t const *p_page_data)
 {
-  #define BATTERY_VOLTAGE_X10_50 290 // 2.9 volts
-  #define BATTERY_VOLTAGE_X10_10 285
-  #define BATTERY_VOLTAGE_X10_0  273
+#define BATTERY_VOLTAGE_X10_50 290 // 2.9 volts
+#define BATTERY_VOLTAGE_X10_10 285
+#define BATTERY_VOLTAGE_X10_0 273
 
-  antplus_controls_page_82_data_layout_t * p_outcoming_data = (antplus_controls_page_82_data_layout_t *)p_page_buffer;
+  antplus_controls_page_82_data_layout_t *p_outcoming_data = (antplus_controls_page_82_data_layout_t *)p_page_buffer;
 
   uint16_t bat_volt_x10 = p_page_data->battery_voltage_x100;
 
@@ -42,11 +42,16 @@ void antplus_controls_page_82_encode(uint8_t * p_page_buffer,
   p_outcoming_data->fractional_battery_voltage = ((bat_volt_x10 % 100) * 255) / 100;
   p_outcoming_data->descriptive_bit_field = (bat_volt_x10 / 100) & 0x0f;
 
-  if (bat_volt_x10 > BATTERY_VOLTAGE_X10_50) {
+  if (bat_volt_x10 > BATTERY_VOLTAGE_X10_50)
+  {
     p_outcoming_data->descriptive_bit_field |= (3 << 4); // Battery Status = Ok
-  } else if (bat_volt_x10 > BATTERY_VOLTAGE_X10_10) {
+  }
+  else if (bat_volt_x10 > BATTERY_VOLTAGE_X10_10)
+  {
     p_outcoming_data->descriptive_bit_field |= (4 << 4); // Battery Status = Low
-  } else {
+  }
+  else
+  {
     p_outcoming_data->descriptive_bit_field |= (5 << 4); // Battery Status = Critical
   }
 }
