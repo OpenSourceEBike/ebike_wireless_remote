@@ -1,11 +1,11 @@
-PROJECT_NAME     := TSDZ2_wireless
-TARGETS          := TSDZ2_wireless
+PROJECT_NAME     := TSDZ2_wireless_remote
+TARGETS          := TSDZ2_wireless_remote
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
 
-$(OUTPUT_DIRECTORY)/TSDZ2_wireless.out: \
+$(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
 SOFT_DEVICE = $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex
@@ -189,10 +189,10 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-TSDZ2_wireless: CFLAGS += -D__HEAP_SIZE=8192
-TSDZ2_wireless: CFLAGS += -D__STACK_SIZE=8192
-TSDZ2_wireless: ASMFLAGS += -D__HEAP_SIZE=8192
-TSDZ2_wireless: ASMFLAGS += -D__STACK_SIZE=8192
+TSDZ2_wireless_remote: CFLAGS += -D__HEAP_SIZE=8192
+TSDZ2_wireless_remote: CFLAGS += -D__STACK_SIZE=8192
+TSDZ2_wireless_remote: ASMFLAGS += -D__HEAP_SIZE=8192
+TSDZ2_wireless_remote: ASMFLAGS += -D__STACK_SIZE=8192
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -202,11 +202,11 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: TSDZ2_wireless TSDZ2_with_SD
+default: TSDZ2_wireless_remote TSDZ2_with_SD
 
 # We use srec_cat here but if you want to be able to use the combined hex file with nRF Connect you should use Nordic's mergehex tool
 TSDZ2_with_SD:
-	$(SREC_PATH)srec_cat $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/TSDZ2_wireless.hex -Intel -Output $(OUTPUT_DIRECTORY)/TSDZ2_wireless_with_SD.hex
+	$(SREC_PATH)srec_cat $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -Intel -Output $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_with_SD.hex
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
