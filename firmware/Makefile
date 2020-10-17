@@ -218,8 +218,8 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 # Flash the program
 flash: default
-	@echo Flashing: $(OUTPUT_DIRECTORY)/TSDZ2_REMOTE.hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/TSDZ2_REMOTE.hex --sectorerase
+	@echo Flashing: $(OUTPUT_DIRECTORY)/TSDZ2_WIRELESS_REMOTE.hex
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/TSDZ2_WIRELESS_REMOTE.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 erase:
