@@ -11,7 +11,7 @@
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/_build/TSDZ2_wireless.out",
+            "program": "${workspaceFolder}/_build/TSDZ2_wireless_remote.out",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",            
@@ -30,7 +30,7 @@
             "customLaunchSetupCommands": [
                 {
                     "description": "Set remote target",
-                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless.out"
+                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless_remote.out"
                 },
                 {
                     "description": "Set remote target",
@@ -44,7 +44,7 @@
                 },
                 {
                     "description": "Flash firmware",
-                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_with_SD.hex"
+                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_remote_with_SD.hex"
                 },
                 {
                     "description": "Start debug",
@@ -59,7 +59,7 @@
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/_build/TSDZ2_wireless.out",
+            "program": "${workspaceFolder}/_build/TSDZ2_wireless_remote.out",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",            
@@ -78,7 +78,7 @@
             "customLaunchSetupCommands": [
                 {
                     "description": "Set remote target",
-                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless.out"
+                    "text": "file ${workspaceFolder}/_build/TSDZ2_wireless_remote.out"
                 },
                 {
                     "description": "Set remote target",
@@ -103,7 +103,7 @@
             "type": "cortex-debug",
             "request": "launch",
             //  OpenOCD path is defined in workspace.code-workspace.
-            "executable": "${workspaceFolder}/_build/TSDZ2_wireless.out",
+            "executable": "${workspaceFolder}/_build/TSDZ2_wireless_remote.out",
             "servertype": "openocd",
             "cwd": "${workspaceRoot}",
             //  Application Executable to be flashed before debugging
