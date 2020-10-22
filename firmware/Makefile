@@ -128,7 +128,9 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(PROJ_DIR)/ble_services.c \
-  
+  $(PROJ_DIR)/state.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -217,6 +219,7 @@ INC_FOLDERS += \
   $(PROJ_DIR)/ \
   $(PROJ_DIR)/include \
   $(SDK_ROOT)/integration/nrfx/legacy \
+  
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -231,7 +234,7 @@ CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
-# CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
 CFLAGS += -DNRF_SD_BLE_API_VERSION=6
@@ -239,7 +242,8 @@ CFLAGS += -DS340
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror
+#CFLAGS += -Wall -Werror
+CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing

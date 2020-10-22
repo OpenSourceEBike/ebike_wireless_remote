@@ -1056,7 +1056,7 @@ void ble_init(void)
 void change_ant_id_and_reset(void)
 {
   // NOTE that flash of EEPROM does not work on an interrupt like on the ant_id_write_handler(), hence it is done here on main()
-  eeprom_write_variables();
+ // eeprom_write_variables();
 
   // wait some time to make sure eeprom is written
   nrf_delay_ms(1000);
@@ -1099,7 +1099,7 @@ mp_ui_vars = get_ui_vars();
 
   while (1)
   {
-    // every 50 ms
+   // every 50 ms
     if (main_ticks % (50 / MSEC_PER_TICK) == 0) {
       // exchange data from realtime layer to UI layer
       // do this in atomic way, disabling the real time layer (should be no problem as
