@@ -395,6 +395,42 @@ void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event)
   default:
     break;
   }
+    static void init_app_timers(void)
+{
+  ret_code_t err_code;
+
+  err_code = app_timer_init();
+  APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
+  APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
+  APP_ERROR_CHECK(err_code);
+}
+static void main_timer_timeout(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+
+  main_ticks++;
+
+  if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
+    ui32_seconds_since_startup++;
+  
+  if ((main_ticks % (50 / MSEC_PER_TICK) == 0) && // every 50ms
+      m_rt_processing_stop == false)
+    rt_processing();
+}
+
+/// msecs since boot (note: will roll over every 50 days)
+uint32_t get_time_base_counter_1ms() {
+  return main_ticks * MSEC_PER_TICK;
+}
+
+uint32_t get_seconds() {
+  return ui32_seconds_since_startup;
+}
+
 }
 static void start_timer_antplus_controls_send(void)
 {
