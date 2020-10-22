@@ -21,7 +21,7 @@ typedef enum {
   FRAME_TYPE_FIRMWARE_VERSION = 4,
 } frame_type_t;
 
-static uint8_t ui8_m_usart1_received_first_package = 0;
+//static uint8_t ui8_m_usart1_received_first_package = 0;
 uint8_t ui8_g_battery_soc;
 volatile uint8_t ui8_g_motorVariablesStabilized = 0;
 
