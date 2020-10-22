@@ -58,6 +58,8 @@
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds
+
+
 #define DEVICE_NAME                     "TSDZ2_wireless"                        /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
@@ -395,18 +397,8 @@ void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event)
   default:
     break;
   }
-    static void init_app_timers(void)
-{
-  ret_code_t err_code;
+   
 
-  err_code = app_timer_init();
-  APP_ERROR_CHECK(err_code);
-
-  err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
-  APP_ERROR_CHECK(err_code);
-
-  err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
-  APP_ERROR_CHECK(err_code);
 }
 static void main_timer_timeout(void *p_context)
 {
@@ -431,7 +423,23 @@ uint32_t get_seconds() {
   return ui32_seconds_since_startup;
 }
 
+
+ static void init_app_timers(void)
+{
+  ret_code_t err_code;
+
+  err_code = app_timer_init();
+  APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
+  APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
+  APP_ERROR_CHECK(err_code);
 }
+
+
+
 static void start_timer_antplus_controls_send(void)
 {
   ret_code_t err_code;
@@ -1069,12 +1077,13 @@ mp_ui_vars = get_ui_vars();
 
   log_init();
   pins_init();
-
+  init_app_timers();
   err_code = ant_state_indicator_init(0, 0);
   APP_ERROR_CHECK(err_code);
   buttons_init();
   softdevice_setup();
   profile_setup();
+  
   ble_init();
 
   err_code = app_timer_create(&m_antplus_controls_send,
