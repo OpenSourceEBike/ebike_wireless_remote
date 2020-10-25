@@ -424,21 +424,7 @@ uint32_t get_seconds() {
 }
 
 
- static void init_app_timers(void)
-{
-  ret_code_t err_code;
-
-  err_code = app_timer_init();
-  APP_ERROR_CHECK(err_code);
-
-  err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
-  APP_ERROR_CHECK(err_code);
-
-  err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
-  APP_ERROR_CHECK(err_code);
-}
-
-
+ 
 
 static void start_timer_antplus_controls_send(void)
 {
@@ -663,6 +649,9 @@ static void profile_setup(void)
                                         LEV_SERIAL_NUMBER);
 
   //@snippet [ANT LEV RX Profile Setup]
+    
+  ui_vars_t *p_ui_vars = get_ui_vars();
+  m_ant_lev_channel_lev_disp_config.device_number = p_ui_vars->ui8_ant_device_id;
   err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
   APP_ERROR_CHECK(err_code);
   err_code = antplus_controls_sens_init(&m_antplus_controls,
@@ -714,7 +703,7 @@ static void softdevice_setup(void)
   err_code = ant_plus_key_set(LEV_ANTPLUS_NETWORK_NUM);
   APP_ERROR_CHECK(err_code);
 }
-
+/*
 static void log_init(void)
 {
   ret_code_t err_code = NRF_LOG_INIT(NULL);
@@ -722,6 +711,7 @@ static void log_init(void)
 
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
+*/
 static void lfclk_config(void)
 {
   ret_code_t err_code = nrf_drv_clock_init();
@@ -729,13 +719,13 @@ static void lfclk_config(void)
 
   nrf_drv_clock_lfclk_request(NULL);
 }
-
+/*
 static void timer_init(void)
 {
   ret_code_t err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
 }
-
+*/
 /**@brief Function for initializing the BLE stack.
  *
  * @details Initializes the SoftDevice and the BLE event interrupt.
@@ -1064,27 +1054,15 @@ void change_ant_id_and_reset(void)
   // finally reset so the new ANT ID will take effect
   NVIC_SystemReset();
 }
-
-int main(void)
+static void init_app_timers(void)
 {
-mp_ui_vars = get_ui_vars();
+  ret_code_t err_code;
 
-  timer_init();
-  lfclk_config();
-
-  ret_code_t err_code = nrf_pwr_mgmt_init();
+  err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
 
-  log_init();
-  pins_init();
-  init_app_timers();
-  err_code = ant_state_indicator_init(0, 0);
+  err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
   APP_ERROR_CHECK(err_code);
-  buttons_init();
-  softdevice_setup();
-  profile_setup();
-  
-  ble_init();
 
   err_code = app_timer_create(&m_antplus_controls_send,
                               APP_TIMER_MODE_SINGLE_SHOT,
@@ -1094,6 +1072,36 @@ mp_ui_vars = get_ui_vars();
                               APP_TIMER_MODE_SINGLE_SHOT,
                               timer_lev_send_handler);
   APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
+  APP_ERROR_CHECK(err_code);
+}
+
+
+int main(void)
+{
+mp_ui_vars = get_ui_vars();
+
+ // timer_init();
+ init_app_timers();
+  lfclk_config();
+
+  ret_code_t err_code = nrf_pwr_mgmt_init();
+  APP_ERROR_CHECK(err_code);
+
+  //log_init();
+  pins_init();
+  
+  //err_code = ant_state_indicator_init(0, 0);
+  //APP_ERROR_CHECK(err_code);
+  buttons_init();
+  //softdevice_setup();
+  ble_init();
+  profile_setup();
+  
+  
+
+  
 // setup this member variable ui8_m_ant_device_id
   ui8_m_ant_device_id = mp_ui_vars->ui8_ant_device_id;
 

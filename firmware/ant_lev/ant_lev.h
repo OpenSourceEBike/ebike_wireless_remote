@@ -35,7 +35,7 @@
                                     DEVICE_NUMBER,                               \
                                     NETWORK_NUMBER,                              \
                                     LEV_MSG_PERIOD_4Hz)                          \
-    static const ant_channel_config_t CONCAT_2(NAME, _channel_lev_disp_config) = \
+     ant_channel_config_t CONCAT_2(NAME, _channel_lev_disp_config) = \
         {                                                                        \
             .channel_number = (CHANNEL_NUMBER),                                  \
             .channel_type = LEV_DISP_CHANNEL_TYPE,                               \
@@ -47,6 +47,7 @@
             .channel_period = LEV_MSG_PERIOD_4Hz,                                \
             .network_number = (NETWORK_NUMBER),                                  \
     }
+    // was     static const ant_channel_config_t CONCAT_2(NAME, _channel_lev_disp_config) = 
 #define LEV_DISP_CHANNEL_CONFIG(NAME) &CONCAT_2(NAME, _channel_lev_disp_config)
 
 #define LEV_DISP_PROFILE_CONFIG_DEF(NAME,                                         \
