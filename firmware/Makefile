@@ -128,7 +128,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(PROJ_DIR)/ble_services.c \
-  $(PROJ_DIR)/state.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 
