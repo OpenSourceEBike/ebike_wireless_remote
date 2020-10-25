@@ -262,6 +262,7 @@ bool m_buttons_sent_wait = false;
 button_pins_t m_buttons_wait_to_send = 0;
 bool m_timer_buttons_send_running = false;
 bool m_button_long_press = false;
+
 //ui_vars_t *mp_ui_vars;
 uint8_t old_ant_device_id = 0; //initially in pairing mode
 
@@ -459,12 +460,15 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   UNUSED_PARAMETER(p_context);
 
   m_button_long_press = true;
+  enable_bluetooth=false;//enable bluetooth
+
 }
 static void timer_button_long_press_bluetooth_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
 
 enable_bluetooth = true;
+m_button_long_press=false;
 }
 
 static void timer_antplus_controls_send_handler(void *p_context)
