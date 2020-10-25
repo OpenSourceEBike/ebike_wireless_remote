@@ -628,7 +628,12 @@ void buttons_init(void)
   err_code = app_timer_create(&m_timer_button_long_press_timeout,
                               APP_TIMER_MODE_SINGLE_SHOT,
                               timer_button_long_press_timeout_handler);
+                            
   APP_ERROR_CHECK(err_code);
+  err_code = app_timer_create(&m_timer_button_long_press_timeout,
+                              APP_TIMER_MODE_SINGLE_SHOT,
+                              timer_button_long_press_bluetooth_timeout_handler);
+    APP_ERROR_CHECK(err_code);                          
   err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
