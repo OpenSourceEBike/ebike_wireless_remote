@@ -31,7 +31,7 @@ volatile motor_init_state_config_t g_motor_init_state_conf = MOTOR_INIT_CONFIG_S
 volatile motor_init_status_t ui8_g_motor_init_status = MOTOR_INIT_STATUS_RESET;
 
 tsdz2_firmware_version_t g_tsdz2_firmware_version = { 0xff, 0, 0 };
-
+/*
 rt_vars_t rt_vars;
 ui_vars_t ui_vars;
 
@@ -64,15 +64,15 @@ void set_conversions(void) {
 void rt_send_tx_package(frame_type_t type) {
   uint8_t crc_len = 3; // minimun is 3
 	uint8_t *ui8_usart1_tx_buffer = uart_get_tx_buffer();
-
+*/
 	/************************************************************************************************/
 	// send tx package
 	// start up byte
-	ui8_usart1_tx_buffer[0] = 0x59;
-  ui8_usart1_tx_buffer[1] = crc_len;
+	//ui8_usart1_tx_buffer[0] = 0x59;
+ // ui8_usart1_tx_buffer[1] = crc_len;
   // type of the frame
-	ui8_usart1_tx_buffer[2] = (uint8_t) type;
-
+//	ui8_usart1_tx_buffer[2] = (uint8_t) type;
+/*
 	switch (type) {
 	  case FRAME_TYPE_PERIODIC:
       if (rt_vars.ui8_walk_assist) {
@@ -224,12 +224,14 @@ void rt_send_tx_package(frame_type_t type) {
 	// send the full package to UART
   uart_send_tx_buffer(ui8_usart1_tx_buffer, ui8_usart1_tx_buffer[1] + 2);
 }
-
+*/
 /**
  * Called from the main thread every 100ms
  *
  */
+/*
 void copy_rt_ui_vars(void) {
+  
 	ui_vars.ui16_adc_battery_voltage = rt_vars.ui16_adc_battery_voltage;
 	ui_vars.ui8_battery_current_x5 = rt_vars.ui8_battery_current_x5;
 	ui_vars.ui16_battery_power_loss = rt_vars.ui16_battery_power_loss;
@@ -350,6 +352,7 @@ void copy_rt_ui_vars(void) {
   rt_vars.ui8_torque_sensor_adc_threshold = ui_vars.ui8_torque_sensor_adc_threshold;
   rt_vars.ui8_coast_brake_enable = ui_vars.ui8_coast_brake_enable;
 }
+*/
 /*
 void communications(void) {
   frame_type_t ui8_frame;

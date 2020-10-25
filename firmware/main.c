@@ -51,9 +51,9 @@
 #include "bsp_btn_ant.h"
 #include "antplus_controls.h"
 
-#define NRFX_CLOCK_ENABLED 1
-#define NRF_CLOCK_ENABLED 1
-#define APP_TIMER_ENABLED 1
+
+
+
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h
@@ -262,9 +262,10 @@ bool m_buttons_sent_wait = false;
 button_pins_t m_buttons_wait_to_send = 0;
 bool m_timer_buttons_send_running = false;
 bool m_button_long_press = false;
-ui_vars_t *mp_ui_vars;
+//ui_vars_t *mp_ui_vars;
+uint8_t old_ant_device_id = 0; //initially in pairing mode
 
-uint8_t ui8_m_ant_device_id;
+uint8_t new_ant_device_id;
 
 #define MSEC_PER_TICK 10
 APP_TIMER_DEF(main_timer);
@@ -650,8 +651,8 @@ static void profile_setup(void)
 
   //@snippet [ANT LEV RX Profile Setup]
     
-  ui_vars_t *p_ui_vars = get_ui_vars();
-  m_ant_lev_channel_lev_disp_config.device_number = p_ui_vars->ui8_ant_device_id;
+  //ui_vars_t *p_ui_vars = get_ui_vars();
+  m_ant_lev_channel_lev_disp_config.device_number = old_ant_device_id;
   err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
   APP_ERROR_CHECK(err_code);
   err_code = antplus_controls_sens_init(&m_antplus_controls,
@@ -733,16 +734,16 @@ static void timer_init(void)
 static void ble_stack_init(void)
 {
   ret_code_t err_code;
-
+/*
   err_code = nrf_sdh_enable_request();
   APP_ERROR_CHECK(err_code);
-
+*/
   // Configure the BLE stack using the default settings.
   // Fetch the start address of the application RAM.
   uint32_t ram_start = 0;
   err_code = nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start);
   APP_ERROR_CHECK(err_code);
-
+  ram_start +=16;
   // Enable BLE stack.
   err_code = nrf_sdh_ble_enable(&ram_start);
   APP_ERROR_CHECK(err_code);
@@ -802,7 +803,7 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
 
 static void ant_id_write_handler(uint16_t conn_handle, ble_ant_id_t * p_ant_id, uint8_t value)
 {
-  ui8_m_ant_device_id = value;
+  new_ant_device_id = value;
 }
 
 /**@brief Function for initializing services that will be used by the application.
@@ -824,7 +825,7 @@ static void services_init(void)
   err_code = ble_service_ant_id_init(&m_ble_ant_id_service, &init);
   APP_ERROR_CHECK(err_code);
 
-  ble_ant_id_on_change(m_conn_handle, &m_ble_ant_id_service, mp_ui_vars->ui8_ant_device_id);
+  ble_ant_id_on_change(m_conn_handle, &m_ble_ant_id_service, new_ant_device_id);
 }
 
 /**@brief Function for handling advertising events.
@@ -1042,18 +1043,19 @@ void ble_init(void)
   peer_manager_init();
   advertising_start(true);
 }
-
+/*
 void change_ant_id_and_reset(void)
 {
   // NOTE that flash of EEPROM does not work on an interrupt like on the ant_id_write_handler(), hence it is done here on main()
  // eeprom_write_variables();
 
   // wait some time to make sure eeprom is written
-  nrf_delay_ms(1000);
+  //nrf_delay_ms(1000);
 
   // finally reset so the new ANT ID will take effect
-  NVIC_SystemReset();
+  //NVIC_SystemReset();
 }
+*/
 static void init_app_timers(void)
 {
   ret_code_t err_code;
@@ -1080,7 +1082,7 @@ static void init_app_timers(void)
 
 int main(void)
 {
-mp_ui_vars = get_ui_vars();
+//mp_ui_vars = get_ui_vars();
 
  // timer_init();
  init_app_timers();
@@ -1095,15 +1097,15 @@ mp_ui_vars = get_ui_vars();
   //err_code = ant_state_indicator_init(0, 0);
   //APP_ERROR_CHECK(err_code);
   buttons_init();
-  //softdevice_setup();
+  softdevice_setup();
   ble_init();
   profile_setup();
   
   
 
   
-// setup this member variable ui8_m_ant_device_id
-  ui8_m_ant_device_id = mp_ui_vars->ui8_ant_device_id;
+// setup this member variable new_ant_device_id
+  new_ant_device_id = old_ant_device_id;
 
   while (1)
   {
@@ -1112,19 +1114,19 @@ mp_ui_vars = get_ui_vars();
       // exchange data from realtime layer to UI layer
       // do this in atomic way, disabling the real time layer (should be no problem as
       // copy_rt_to_ui_vars() should be fast and take a small piece of the 100ms periodic realtime layer processing
-      rt_processing_stop();
-      copy_rt_ui_vars();
-      rt_processing_start();
+      //rt_processing_stop();
+      //copy_rt_ui_vars();
+      //rt_processing_start();
     }
 
     // every 1 second
     if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
     {
       // see if there was a change to the ANT ID
-      if (ui8_m_ant_device_id != mp_ui_vars->ui8_ant_device_id)
+      if (new_ant_device_id != old_ant_device_id)
       {
-        mp_ui_vars->ui8_ant_device_id = ui8_m_ant_device_id;
-        change_ant_id_and_reset();
+       old_ant_device_id = new_ant_device_id;
+       NVIC_SystemReset();
       }
     }
   }
