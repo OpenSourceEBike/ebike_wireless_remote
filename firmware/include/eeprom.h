@@ -119,6 +119,7 @@
 #define DEFAULT_TORQUE_SENSOR_CALIBRATION_RIGHT_ADC_8               300
 
 #pragma pack(4)
+/*
 typedef struct configurations {
 	uint8_t configurations_version; // used to detect changes in eeprom encoding
 	uint8_t ui8_assist_level;
@@ -181,3 +182,4 @@ void eeprom_write_variables(void);
 void eeprom_init_defaults(void);
 
 #endif /* _EEPROM_H_ */
+*/

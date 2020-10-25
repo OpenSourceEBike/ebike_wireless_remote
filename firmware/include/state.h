@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include "state.h"
 
-#define ASSIST_LEVEL_NUMBER 20
-
+//#define ASSIST_LEVEL_NUMBER 20
+/*
 typedef enum {
   MOTOR_INIT_GET_MOTOR_ALIVE,
   MOTOR_INIT_WAIT_MOTOR_ALIVE,
@@ -302,22 +302,22 @@ extern rt_vars_t rt_vars; // FIXME - this shouldn't be exposed outside of state.
 extern ui_vars_t ui_vars;
 */
 // extern volatile uint8_t ui8_g_motorVariablesStabilized;
-
+/*
 typedef struct {
   uint8_t major;
   uint8_t minor;
   uint8_t patch;
 } tsdz2_firmware_version_t;
-
+*/
 
 // /**
 //  * Called from the main thread every 100ms
 //  *
 //  */
-void copy_rt_ui_vars(void);
-void set_conversions(void);
-void prepare_torque_sensor_calibration_table(void);
-void rt_processing(void);
+//void copy_rt_ui_vars(void);
+//void set_conversions(void);
+//void prepare_torque_sensor_calibration_table(void);
+//void rt_processing(void);
 
-extern tsdz2_firmware_version_t g_tsdz2_firmware_version;
-extern volatile motor_init_status_t ui8_g_motor_init_status;
+//extern tsdz2_firmware_version_t g_tsdz2_firmware_version;
+//extern volatile motor_init_status_t ui8_g_motor_init_status;

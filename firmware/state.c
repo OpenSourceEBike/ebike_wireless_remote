@@ -12,7 +12,7 @@
 #include "uart.h"
 #include "utils.h"
 #include "state.h"
-
+/*
 typedef enum {
   FRAME_TYPE_ALIVE = 0,
   FRAME_TYPE_STATUS = 1,
@@ -20,17 +20,17 @@ typedef enum {
   FRAME_TYPE_CONFIGURATIONS = 3,
   FRAME_TYPE_FIRMWARE_VERSION = 4,
 } frame_type_t;
-
+*/
 //static uint8_t ui8_m_usart1_received_first_package = 0;
-uint8_t ui8_g_battery_soc;
-volatile uint8_t ui8_g_motorVariablesStabilized = 0;
+//uint8_t ui8_g_battery_soc;
+//volatile uint8_t ui8_g_motorVariablesStabilized = 0;
 
-volatile uint8_t m_get_tsdz2_firmware_version; // true if we are simulating a motor (and therefore not talking on serial at all)
-volatile motor_init_state_t g_motor_init_state = MOTOR_INIT_GET_MOTOR_ALIVE;
-volatile motor_init_state_config_t g_motor_init_state_conf = MOTOR_INIT_CONFIG_SEND_CONFIG;
-volatile motor_init_status_t ui8_g_motor_init_status = MOTOR_INIT_STATUS_RESET;
+//volatile uint8_t m_get_tsdz2_firmware_version; // true if we are simulating a motor (and therefore not talking on serial at all)
+//volatile motor_init_state_t g_motor_init_state = MOTOR_INIT_GET_MOTOR_ALIVE;
+//volatile motor_init_state_config_t g_motor_init_state_conf = MOTOR_INIT_CONFIG_SEND_CONFIG;
+//volatile motor_init_status_t ui8_g_motor_init_status = MOTOR_INIT_STATUS_RESET;
 
-tsdz2_firmware_version_t g_tsdz2_firmware_version = { 0xff, 0, 0 };
+//tsdz2_firmware_version_t g_tsdz2_firmware_version = { 0xff, 0, 0 };
 /*
 rt_vars_t rt_vars;
 ui_vars_t ui_vars;
@@ -566,15 +566,15 @@ static void motor_init(void) {
 }
 */
 // Note: this called from ISR context every 50ms
-void rt_processing(void)
-{
+//void rt_processing(void)
+//{
   //communications();
 
   // called here because this state machine for motor_init should run every 100ms
   // montor init processing must be done when exiting the configurations menu
   // once motor is initialized, this should take almost no processing time
  // motor_init();
-}
+//}
 /*
 void prepare_torque_sensor_calibration_table(void) {
   static bool first_time = true;
