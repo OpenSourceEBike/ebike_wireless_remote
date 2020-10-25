@@ -38,8 +38,6 @@
 #include "pins.h"
 #include "app_util_platform.h"
 #include "app_uart.h"
-#include "eeprom.h"
-#include "state.h"
 #include "ant_interface.h"
 #include "nrf_delay.h"
 #include "fds.h"
@@ -58,9 +56,9 @@
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds
+#define BUTTON_LONG_PRESS_BLUETOOTH_ENABLE APP_TIMER_TICKS(6000) //6 seconds
 
-
-#define DEVICE_NAME                     "TSDZ2_wireless"                        /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "TSDZ2_wireless_remote"                        /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -99,6 +97,7 @@ static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];                    
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX];         /**< Buffer for storing an encoded scan data. */
 
 /**@brief Struct that contains pointers to the encoded advertising data. */
+
 static ble_gap_adv_data_t m_adv_data =
 {
   .adv_data =
@@ -256,6 +255,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
+APP_TIMER_DEF(m_timer_button_long_press_bluetooth_timeout);
 APP_TIMER_DEF(m_antplus_controls_send);
 
 bool m_buttons_sent_wait = false;
@@ -334,6 +334,8 @@ NRF_SDH_ANT_OBSERVER(m_ant_observer, ANT_LEV_ANT_OBSERVER_PRIO, ant_lev_disp_evt
 NRF_SDH_ANT_OBSERVER(m_ant_observer_control, ANTPLUS_CONTROLS_ANT_OBSERVER_PRIO, antplus_controls_sens_evt_handler, &m_antplus_controls);
 
 uint16_t cnt_1;
+bool enable_bluetooth = false;
+
 
 void antplus_controls_evt_handler(antplus_controls_profile_t *p_profile, antplus_controls_evt_t event)
 {
@@ -403,18 +405,19 @@ void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event)
 }
 static void main_timer_timeout(void *p_context)
 {
+
   UNUSED_PARAMETER(p_context);
 
-  main_ticks++;
+  main_ticks++; //updated every 10ms, 100 for every second
 
   if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
     ui32_seconds_since_startup++;
   
-  if ((main_ticks % (50 / MSEC_PER_TICK) == 0) && // every 50ms
-      m_rt_processing_stop == false)
-    rt_processing();
+  //if ((main_ticks % (50 / MSEC_PER_TICK) == 0) && // every 50ms
+    //  m_rt_processing_stop == false)
+    //rt_processing();
 }
-
+/*
 /// msecs since boot (note: will roll over every 50 days)
 uint32_t get_time_base_counter_1ms() {
   return main_ticks * MSEC_PER_TICK;
@@ -423,7 +426,7 @@ uint32_t get_time_base_counter_1ms() {
 uint32_t get_seconds() {
   return ui32_seconds_since_startup;
 }
-
+*/
 
  
 
@@ -456,6 +459,12 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   UNUSED_PARAMETER(p_context);
 
   m_button_long_press = true;
+}
+static void timer_button_long_press_bluetooth_timeout_handler(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+
+enable_bluetooth = true;
 }
 
 static void timer_antplus_controls_send_handler(void *p_context)
@@ -492,6 +501,7 @@ static void timer_lev_send_handler(void *p_context)
     buttons_send_page16(&m_ant_lev, m_buttons_wait_to_send, m_button_long_press);
     m_buttons_wait_to_send = 0;
     m_button_long_press = false;
+    
   }
 
   // if we sent a button page, start again the timer
@@ -527,6 +537,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
         buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
         m_buttons_sent_wait = true;
         m_button_long_press = false;
+        
       }
       else
       {
@@ -549,6 +560,10 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
       APP_ERROR_CHECK(err_code);
       m_button_long_press = false;
+      // stop button long press bluetooth timeout timer
+      err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press timerf
+      APP_ERROR_CHECK(err_code);
+      enable_bluetooth=false;
       // start_timer_antplus_controls_send(); //start long press timer
 
       break;
@@ -559,6 +574,10 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       APP_ERROR_CHECK(err_code);
       buttons_send_pag73(&m_antplus_controls, button_pin);
       m_button_long_press = false;
+      // stop button long press bluetooth timeout timer
+      err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press timerf
+      APP_ERROR_CHECK(err_code);
+      enable_bluetooth=false;
     }
   case APP_BUTTON_PUSH: //button pushed
   {
@@ -569,6 +588,9 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
+    err_code = app_timer_start(m_timer_button_long_press_bluetooth_timeout, BUTTON_LONG_PRESS_BLUETOOTH_ENABLE, NULL); //start the long press timerf
+    APP_ERROR_CHECK(err_code);
+    enable_bluetooth=false;
     break;
   }
   }
@@ -611,6 +633,10 @@ void buttons_init(void)
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
+  // stop button long press timeout timer
+      err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press timerf
+      APP_ERROR_CHECK(err_code);
+      enable_bluetooth = false;
 }
 
 void shutdown(void)
@@ -1098,7 +1124,7 @@ int main(void)
   //APP_ERROR_CHECK(err_code);
   buttons_init();
   softdevice_setup();
-  ble_init();
+ if (enable_bluetooth==true) ble_init();
   profile_setup();
   
   
@@ -1110,23 +1136,25 @@ int main(void)
   while (1)
   {
    // every 50 ms
-    if (main_ticks % (50 / MSEC_PER_TICK) == 0) {
+   // if (main_ticks % (50 / MSEC_PER_TICK) == 0) {
       // exchange data from realtime layer to UI layer
       // do this in atomic way, disabling the real time layer (should be no problem as
       // copy_rt_to_ui_vars() should be fast and take a small piece of the 100ms periodic realtime layer processing
       //rt_processing_stop();
       //copy_rt_ui_vars();
       //rt_processing_start();
-    }
-
-    // every 1 second
-    if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
+    //}
+// main timer calls main_timer_timeout every 10ms
+    // 100 main_ticks/s
+    if (main_ticks % (1000 / MSEC_PER_TICK) == 0) //every second
     {
       // see if there was a change to the ANT ID
       if (new_ant_device_id != old_ant_device_id)
       {
        old_ant_device_id = new_ant_device_id;
-       NVIC_SystemReset();
+       NVIC_SystemReset(); //reset and start again
+       ui32_seconds_since_startup = 0;
+       main_ticks=0;
       }
     }
   }
