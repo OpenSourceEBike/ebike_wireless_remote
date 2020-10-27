@@ -49,9 +49,9 @@
 #include "bsp_btn_ant.h"
 #include "antplus_controls.h"
 
-#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)               /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
-#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000)     // 1h to enter low power mode
-#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)          // 1 seconds for long press
+#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)                 /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
+#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000)       // 1h to enter low power mode
+#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)            // 1 seconds for long press
 #define BUTTON_LONG_PRESS_BOOTLOADER_ENABLE APP_TIMER_TICKS(10000) //10 seconds to enter bootloader mode
 
 #define DEVICE_NAME "TSDZ2_wireless_remote" /**< Name of device. Will be included in the advertising data. */
@@ -90,7 +90,7 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Han
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
-
+bool bootloader=false;
 /**@brief Struct that contains pointers to the encoded advertising data. */
 
 static ble_gap_adv_data_t m_adv_data =
@@ -388,29 +388,6 @@ static void main_timer_timeout(void *p_context)
   if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
     ui32_seconds_since_startup++;
 }
-/*
-static void start_timer_antplus_controls_send(void)
-{
-  ret_code_t err_code;
-
-  err_code = app_timer_start(m_antplus_controls_send,
-                             APP_TIMER_TICKS(0), NULL); //0 works best (no wait)
-  APP_ERROR_CHECK(err_code);
-  
-}
-*/
-/*
-static void start_timer_lev_send(void)
-{
-  ret_code_t err_code;
-
-
-  err_code = app_timer_start(m_lev_send,
-                             APP_TIMER_TICKS(0), NULL); //250ms sec wait timer(250) works best with 0
-  APP_ERROR_CHECK(err_code);
-  
-}
-*/
 static void timer_button_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -428,59 +405,9 @@ static void timer_button_long_press_bootloader_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   //press any button for more than 10 seconds
- //enable bootloader mode
+  //enable bootloader mode
+  bootloader=true;
 }
-/*
-static void timer_antplus_controls_send_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
-
-  // if there is a button page wait to be sent, sent it
-  if (m_buttons_wait_to_send)
-  {
-    buttons_send_pag73(&m_antplus_controls, m_buttons_wait_to_send);
-    m_buttons_wait_to_send = 0;
-  }
-
-  // if we sent a button page, start again the timer
-  if (m_buttons_wait_to_send)
-  {
-    start_timer_antplus_controls_send();
-    m_buttons_wait_to_send = 0;
-  }
-  else
-  {
-
-    m_timer_buttons_send_running = false;
-  }
-}
-*/
-/*
-static void timer_lev_send_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
-
-  // if there is a button page wait to be sent, sent it
-  if (m_buttons_wait_to_send)
-  {
-    buttons_send_page16(&m_ant_lev, m_buttons_wait_to_send, m_button_long_press);
-    m_buttons_wait_to_send = 0;
-    m_button_long_press = false;
-  }
-
-  // if we sent a button page, start again the timer
-  if (m_buttons_wait_to_send)
-  {
-    start_timer_lev_send();
-    m_buttons_wait_to_send = 0;
-  }
-  else
-  {
-
-    m_timer_buttons_send_running = false;
-  }
-}
-*/
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
 
@@ -514,6 +441,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       //unassigned
       {
         //motor power?
+        buttons_send_pag73(&m_antplus_controls, button_pin);
       }
     }
     else
@@ -1023,24 +951,10 @@ void ble_init(void)
 static void init_app_timers(void)
 {
   ret_code_t err_code;
-
   err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
-
   err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
   APP_ERROR_CHECK(err_code);
-  /*
-  err_code = app_timer_create(&m_antplus_controls_send,
-                              APP_TIMER_MODE_SINGLE_SHOT,
-                              timer_antplus_controls_send_handler);
-  APP_ERROR_CHECK(err_code);
-  */
-  /*
-  err_code = app_timer_create(&m_lev_send,
-                              APP_TIMER_MODE_SINGLE_SHOT,
-                              timer_lev_send_handler);
-  APP_ERROR_CHECK(err_code);
-*/
   err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
   APP_ERROR_CHECK(err_code);
 }
@@ -1051,7 +965,6 @@ int main(void)
   init_app_timers();
   ret_code_t err_code = nrf_pwr_mgmt_init();
   APP_ERROR_CHECK(err_code);
-
   pins_init();
   buttons_init();
   softdevice_setup();
@@ -1065,9 +978,8 @@ int main(void)
 
   while (1)
   {
-
-    if (ui32_seconds_since_startup > 600) // turn off bluetooth after 10 min if left on
-      write_to_persistent_memory_and_reset(0, 0);             //set enable_bluetooth to 0
+    if (ui32_seconds_since_startup > 600)         // turn off bluetooth after 10 min if left on
+      write_to_persistent_memory_and_reset(0, 0); //set enable_bluetooth to 0
     // main timer calls main_timer_timeout every 10ms
     // 100 main_ticks/s
     if (main_ticks % (1000 / MSEC_PER_TICK) == 0) //every second
