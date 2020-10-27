@@ -52,7 +52,7 @@
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)               /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000)     // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)          // 1 seconds for long press
-#define BUTTON_LONG_PRESS_BLUETOOTH_ENABLE APP_TIMER_TICKS(5000) //5 seconds to enter bluetooth mode
+#define BUTTON_LONG_PRESS_BOOTLOADER_ENABLE APP_TIMER_TICKS(10000) //10 seconds to enter bootloader mode
 
 #define DEVICE_NAME "TSDZ2_wireless_remote" /**< Name of device. Will be included in the advertising data. */
 
@@ -86,7 +86,7 @@ NRF_BLE_QWR_DEF(m_qwr);             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising); /**< Advertising module instance. */
 BLE_ANT_ID_DEF(m_ble_ant_id_service);
 
-static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
+static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Handle of the current connection. */
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
@@ -116,6 +116,13 @@ uint32_t ui32_seconds_since_startup = 0;
 //uint32_t err_code=0;
 volatile uint32_t main_ticks;
 uint32_t enable_bluetooth = 0;
+
+void write_to_persistent_memory_and_reset(uint8_t reg, uint8_t write_mask)
+{
+  sd_power_gpregret_clr(reg, 0xff);       // clear the register
+  sd_power_gpregret_set(reg, write_mask); // initially in pairing mode 0
+  sd_nvic_SystemReset();                  //reset and start again
+}
 
 static void delete_bonds(void)
 {
@@ -239,21 +246,19 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
   }
 }
 
-APP_TIMER_DEF(m_lev_send);
+//APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
-APP_TIMER_DEF(m_timer_button_long_press_bluetooth_timeout);
-APP_TIMER_DEF(m_antplus_controls_send);
+APP_TIMER_DEF(m_timer_button_long_press_bootloader_timeout);
+//APP_TIMER_DEF(m_antplus_controls_send);
 
-bool m_buttons_sent_wait = false;
 button_pins_t m_buttons_wait_to_send = 0;
 bool m_timer_buttons_send_running = false;
 bool m_button_long_press = false;
+//set default  old ant ID for reset;
 
-uint8_t old_ant_device_id = 0; //initially in pairing mode
-
-uint8_t new_ant_device_id;
-
+uint32_t old_ant_device_id = 0; //initially in pairing mode
+uint32_t new_ant_device_id = 0; // used to check for change of ant id
 #define MSEC_PER_TICK 10
 APP_TIMER_DEF(main_timer);
 #define MAIN_INTERVAL APP_TIMER_TICKS(MSEC_PER_TICK)
@@ -267,7 +272,6 @@ void shutdown(void);
 #define CONTROLS_SERIAL_NUMBER 3241
 #define CONTROLS_CHANNEL_NUM 1 // ?? seems can be any value from 0 to 8
 #define ANT_LEV_ANT_OBSERVER_PRIO 1
-
 #define LEV_HW_REVISION 1
 #define LEV_MANUFACTURER_ID 254
 #define LEV_MODEL_NUMBER 1
@@ -384,7 +388,7 @@ static void main_timer_timeout(void *p_context)
   if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
     ui32_seconds_since_startup++;
 }
-
+/*
 static void start_timer_antplus_controls_send(void)
 {
   ret_code_t err_code;
@@ -392,16 +396,21 @@ static void start_timer_antplus_controls_send(void)
   err_code = app_timer_start(m_antplus_controls_send,
                              APP_TIMER_TICKS(0), NULL); //0 works best (no wait)
   APP_ERROR_CHECK(err_code);
+  
 }
+*/
+/*
 static void start_timer_lev_send(void)
 {
   ret_code_t err_code;
 
+
   err_code = app_timer_start(m_lev_send,
                              APP_TIMER_TICKS(0), NULL); //250ms sec wait timer(250) works best with 0
   APP_ERROR_CHECK(err_code);
+  
 }
-
+*/
 static void timer_button_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -415,16 +424,13 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 
   m_button_long_press = true;
 }
-static void timer_button_long_press_bluetooth_timeout_handler(void *p_context)
+static void timer_button_long_press_bootloader_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
-  //press any button for more than 6 seconds
-  m_button_long_press = false;
-  sd_power_gpregret_clr(0, 0xff);
-  sd_power_gpregret_set(0, 0x01); //set enable_bluetooth to 1
-  sd_nvic_SystemReset();          //reset and start again
+  //press any button for more than 10 seconds
+ //enable bootloader mode
 }
-
+/*
 static void timer_antplus_controls_send_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -444,11 +450,12 @@ static void timer_antplus_controls_send_handler(void *p_context)
   }
   else
   {
-    m_buttons_sent_wait = false;
+
     m_timer_buttons_send_running = false;
   }
 }
-
+*/
+/*
 static void timer_lev_send_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -469,11 +476,11 @@ static void timer_lev_send_handler(void *p_context)
   }
   else
   {
-    m_buttons_sent_wait = false;
+
     m_timer_buttons_send_running = false;
   }
 }
-
+*/
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
 
@@ -483,56 +490,67 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
   switch (button_action)
   {
 
-  case APP_BUTTON_RELEASE:
+  case APP_BUTTON_RELEASE:    //process the button actions
   {                           // button released
     if (!m_button_long_press) //not a long press
     {
 
-      if (m_buttons_sent_wait == false)
+      if (pin_no == MINUS__PIN)
+      //motor assist increase
       {
-        // sent right now
         buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
-        m_buttons_sent_wait = true;
-        m_button_long_press = false;
       }
-      else
+      else if (pin_no == PLUS__PIN)
+      //motor assist decrease
       {
-        m_buttons_wait_to_send = button_pin;
+        buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
       }
-      if (m_timer_buttons_send_running == false)
+      else if (pin_no == ENTER__PIN)
+      //pageup on bike computer
       {
-        m_timer_buttons_send_running = true;
-        start_timer_lev_send();
+        buttons_send_pag73(&m_antplus_controls, button_pin);
       }
-
-      // restart button press timeout timer
-
-      err_code = app_timer_stop(m_timer_button_press_timeout);
-      APP_ERROR_CHECK(err_code);
-      err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
-      APP_ERROR_CHECK(err_code);
-
-      // stop button long press timeout timer
-      err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
-      APP_ERROR_CHECK(err_code);
-      m_button_long_press = false;
-      // stop button long press bluetooth timeout timer
-      err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press timerf
-      APP_ERROR_CHECK(err_code);
-
-      // start_timer_antplus_controls_send(); //start long press timer
-
-      break;
+      else if (pin_no == STANDBY__PIN)
+      //unassigned
+      {
+        //motor power?
+      }
     }
     else
-    {                                                               //long button press or bluetooth
-      err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
-      APP_ERROR_CHECK(err_code);
-      err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press bluetooth timerf
-      APP_ERROR_CHECK(err_code);
-      buttons_send_pag73(&m_antplus_controls, button_pin);
+    //long press actions
+    {
+      //long press actions
+      if (pin_no == MINUS__PIN)
+      // store bluetooth on flag and reset
+      {
+        write_to_persistent_memory_and_reset(0, 0x00); //set enable_bluetooth to 0
+      }
+      else if (pin_no == PLUS__PIN)
+      {
+        write_to_persistent_memory_and_reset(0, 0x01); //set enable_bluetooth to 1
+      }
+      else if (pin_no == ENTER__PIN)
+      {
+        //unassigned
+      }
+      else if (pin_no == STANDBY__PIN)
+      {
+        //unassigned
+      }
+
       m_button_long_press = false;
     }
+    //reset the button timers
+    err_code = app_timer_stop(m_timer_button_press_timeout); //1hr timeout for low power
+    APP_ERROR_CHECK(err_code);
+    err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
+    APP_ERROR_CHECK(err_code);
+    err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
+    APP_ERROR_CHECK(err_code);
+    err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); // stop button long press bluetooth timeout timer
+    APP_ERROR_CHECK(err_code);
+    break;
+  }
   case APP_BUTTON_PUSH: //button pushed
   {
 
@@ -543,16 +561,16 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
     //stop the long press bluetooth timer
-    err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //start the long press timerf
+    err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); //start the long press timerf
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_start(m_timer_button_long_press_bluetooth_timeout, BUTTON_LONG_PRESS_BLUETOOTH_ENABLE, NULL); //start the long press timerf
+    err_code = app_timer_start(m_timer_button_long_press_bootloader_timeout, BUTTON_LONG_PRESS_BOOTLOADER_ENABLE, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
 
     break;
   }
   }
-  }
 }
+
 void buttons_init(void)
 {
   ret_code_t err_code;
@@ -587,16 +605,16 @@ void buttons_init(void)
                               timer_button_long_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_create(&m_timer_button_long_press_bluetooth_timeout,
+  err_code = app_timer_create(&m_timer_button_long_press_bootloader_timeout,
                               APP_TIMER_MODE_SINGLE_SHOT,
-                              timer_button_long_press_bluetooth_timeout_handler);
+                              timer_button_long_press_bootloader_timeout_handler);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
   // stop button long press timeout timer
-  err_code = app_timer_stop(m_timer_button_long_press_bluetooth_timeout); //stop the long press timerf
+  err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); //stop the long press timerf
   APP_ERROR_CHECK(err_code);
 }
 
@@ -638,7 +656,8 @@ static void profile_setup(void)
 
   //@snippet [ANT LEV RX Profile Setup]
 
-  //ui_vars_t *p_ui_vars = get_ui_vars();
+  //retrieve the old ant id from a power cycle
+
   m_ant_lev_channel_lev_disp_config.device_number = old_ant_device_id;
   err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
   APP_ERROR_CHECK(err_code);
@@ -782,7 +801,7 @@ static void services_init(void)
   err_code = ble_service_ant_id_init(&m_ble_ant_id_service, &init);
   APP_ERROR_CHECK(err_code);
 
-  ble_ant_id_on_change(m_conn_handle, &m_ble_ant_id_service, new_ant_device_id);
+  ble_ant_id_on_change(m_conn_handle, &m_ble_ant_id_service, old_ant_device_id);
 }
 
 /**@brief Function for handling advertising events.
@@ -1010,23 +1029,24 @@ static void init_app_timers(void)
 
   err_code = app_timer_create(&main_timer, APP_TIMER_MODE_REPEATED, main_timer_timeout);
   APP_ERROR_CHECK(err_code);
-
+  /*
   err_code = app_timer_create(&m_antplus_controls_send,
                               APP_TIMER_MODE_SINGLE_SHOT,
                               timer_antplus_controls_send_handler);
   APP_ERROR_CHECK(err_code);
+  */
+  /*
   err_code = app_timer_create(&m_lev_send,
                               APP_TIMER_MODE_SINGLE_SHOT,
                               timer_lev_send_handler);
   APP_ERROR_CHECK(err_code);
-
+*/
   err_code = app_timer_start(main_timer, MAIN_INTERVAL, NULL);
   APP_ERROR_CHECK(err_code);
 }
 
 int main(void)
 {
-
   lfclk_config();
   init_app_timers();
   ret_code_t err_code = nrf_pwr_mgmt_init();
@@ -1035,37 +1055,26 @@ int main(void)
   pins_init();
   buttons_init();
   softdevice_setup();
-  profile_setup();
-
-  //retrieve the persistent bluetooth flag
-  err_code = sd_power_gpregret_get(0, &enable_bluetooth);
+  sd_power_gpregret_get(1, &old_ant_device_id); // retrieve the old ant id from a reset
+  new_ant_device_id = old_ant_device_id;        //no change yet
+  sd_power_gpregret_get(0, &enable_bluetooth);  //retrieve the persistent bluetooth flag
   APP_ERROR_CHECK(err_code);
+  profile_setup(); // now set up the ant profile
   if (enable_bluetooth)
     ble_init();
-
-  new_ant_device_id = old_ant_device_id;
 
   while (1)
   {
 
-    //check if bluet0oth should be turned off after 5 min
-    if (enable_bluetooth == true && ui32_seconds_since_startup > 300)
+    if (ui32_seconds_since_startup > 600) // turn off bluetooth after 10 min if left on
+      write_to_persistent_memory_and_reset(0, 0);             //set enable_bluetooth to 0
+    // main timer calls main_timer_timeout every 10ms
+    // 100 main_ticks/s
+    if (main_ticks % (1000 / MSEC_PER_TICK) == 0) //every second
     {
-      sd_power_gpregret_clr(0, 0xff);
-      sd_power_gpregret_set(0, 0x00); //set enable_bluetooth to 0
-      sd_nvic_SystemReset();          //reset and start again
-    }
-  }
-
-  // main timer calls main_timer_timeout every 10ms
-  // 100 main_ticks/s
-  if (main_ticks % (1000 / MSEC_PER_TICK) == 0) //every second
-  {
-    // see if there was a change to the ANT ID
-    if (new_ant_device_id != old_ant_device_id)
-    {
-      old_ant_device_id = new_ant_device_id;
-      sd_nvic_SystemReset(); //reset and start again
+      // see if there was a change to the ANT ID
+      if (new_ant_device_id != old_ant_device_id)
+        write_to_persistent_memory_and_reset(1, new_ant_device_id); //write it to persistent memory and reset
     }
   }
 }
