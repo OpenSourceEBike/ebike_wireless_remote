@@ -118,7 +118,7 @@ extern "C"
 
     void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context);
 
-    bool buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button);
+    void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button);
 
 #ifdef __cplusplus
 }
