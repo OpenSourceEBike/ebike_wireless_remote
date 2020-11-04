@@ -1,7 +1,8 @@
 /*
  * TSDZ2 EBike wireless remote firmware
  *
- * Copyright (C) 2020
+ * Copyright (C) Casainho, 2020
+ * Copyright (C) Rananna, 2020
  *
  * Released under the GPL License, Version 3
  */
@@ -9,7 +10,6 @@
 #include <stdio.h>
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
 #include "nrf.h"
 #include "hardfault.h"
 #include "app_error.h"
@@ -37,7 +37,6 @@
 #include "ant_lev.h"
 #include "pins.h"
 #include "app_util_platform.h"
-#include "app_uart.h"
 #include "ant_interface.h"
 #include "nrf_delay.h"
 #include "fds.h"
@@ -48,11 +47,12 @@
 #include "ant_state_indicator.h"
 #include "bsp_btn_ant.h"
 #include "antplus_controls.h"
+#include "eeprom.h"
+#include "nrf_sdh_soc.h"
 
-#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)                 /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
-#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000)       // 1h to enter low power mode
-#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)            // 1 seconds for long press
-#define BUTTON_LONG_PRESS_BOOTLOADER_ENABLE APP_TIMER_TICKS(10000) //10 seconds to enter bootloader mode
+#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
+#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
+#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
 
 #define DEVICE_NAME "TSDZ2_wireless_remote" /**< Name of device. Will be included in the advertising data. */
 
@@ -85,12 +85,12 @@ NRF_BLE_GATT_DEF(m_gatt);           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising); /**< Advertising module instance. */
 BLE_ANT_ID_DEF(m_ble_ant_id_service);
-
+//test flash write completed
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Handle of the current connection. */
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
-bool bootloader = false;
+uint8_t turn_bluetooth_on = 0;
 /**@brief Struct that contains pointers to the encoded advertising data. */
 
 static ble_gap_adv_data_t m_adv_data =
@@ -115,14 +115,7 @@ static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. *
 uint32_t ui32_seconds_since_startup = 0;
 //uint32_t err_code=0;
 volatile uint32_t main_ticks;
-uint32_t enable_bluetooth = 0;
-
-void write_to_persistent_memory_and_reset(uint8_t reg, uint8_t write_mask)
-{
-  sd_power_gpregret_clr(reg, 0xFF);       // clear the register
-  sd_power_gpregret_set(reg, write_mask); // initially in pairing mode 0
-  sd_nvic_SystemReset();                  //reset and start again
-}
+uint8_t enable_bluetooth = 0;
 
 static void delete_bonds(void)
 {
@@ -249,7 +242,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 //APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
-APP_TIMER_DEF(m_timer_button_long_press_bootloader_timeout);
+
 //APP_TIMER_DEF(m_antplus_controls_send);
 
 button_pins_t m_buttons_wait_to_send = 0;
@@ -401,13 +394,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 
   m_button_long_press = true;
 }
-static void timer_button_long_press_bootloader_timeout_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
-  //press any button for more than 10 seconds
-  //enable bootloader mode
-  bootloader = true;
-}
+
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
 
@@ -440,8 +427,8 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       else if (button_pin == STANDBY__PIN)
       //unassigned
       {
-        //turn off the motor power?
-        buttons_send_pag73(&m_antplus_controls, button_pin);
+        //turn off the motor power
+        // buttons_send_pag73(&m_antplus_controls, button_pin);
       }
     }
     else
@@ -451,11 +438,13 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       if (button_pin == MINUS__PIN)
       // store bluetooth flag and reset
       {
-        write_to_persistent_memory_and_reset(1, 0x00); //disable  enable_bluetooth
+        //unassigned
       }
       else if (button_pin == PLUS__PIN)
       {
-        write_to_persistent_memory_and_reset(1, 0x01); // enable_bluetooth....
+
+        // set flag to enable bluetooth on restart
+        turn_bluetooth_on = 1;
       }
       else if (button_pin == ENTER__PIN)
       {
@@ -475,8 +464,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); // stop button long press bluetooth timeout timer
-    APP_ERROR_CHECK(err_code);
+
     break;
   }
   case APP_BUTTON_PUSH: //button pushed
@@ -488,11 +476,6 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
-    //stop the long press bootloader timer
-    err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); //start the long press bootloader timerf
-    APP_ERROR_CHECK(err_code);
-    err_code = app_timer_start(m_timer_button_long_press_bootloader_timeout, BUTTON_LONG_PRESS_BOOTLOADER_ENABLE, NULL); //start the long press timerf
-    APP_ERROR_CHECK(err_code);
 
     break;
   }
@@ -533,19 +516,12 @@ void buttons_init(void)
                               timer_button_long_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_create(&m_timer_button_long_press_bootloader_timeout,
-                              APP_TIMER_MODE_SINGLE_SHOT,
-                              timer_button_long_press_bootloader_timeout_handler);
-  APP_ERROR_CHECK(err_code);
+
   err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
-  // stop button long press timeout timer
-  err_code = app_timer_stop(m_timer_button_long_press_bootloader_timeout); //stop the long press timerf
-  APP_ERROR_CHECK(err_code);
 }
-
 void shutdown(void)
 {
   // // all pins must be disabled or system will wakeup, similar to a reset after enter ultra low power mode
@@ -940,6 +916,7 @@ static void peer_manager_init(void)
 void ble_init(void)
 {
   ble_stack_init();
+
   gap_params_init();
   gatt_init();
   services_init();
@@ -962,36 +939,44 @@ static void init_app_timers(void)
 
 int main(void)
 {
-    lfclk_config();
+
+  lfclk_config();
   init_app_timers();
   ret_code_t err_code = nrf_pwr_mgmt_init();
   APP_ERROR_CHECK(err_code);
-  pins_init();
   buttons_init();
   softdevice_setup();
-  sd_power_gpregret_get(0, &old_ant_device_id); // retrieve the old ant id from a reset
-  new_ant_device_id = old_ant_device_id;        //no change yet
-  sd_power_gpregret_get(1, &enable_bluetooth);  //retrieve the persistent bluetooth flag
-  APP_ERROR_CHECK(err_code);
-  profile_setup(); // now set up the ant profile for ID 0
-                  
-   if (enable_bluetooth)
+  //read the flash memory and setup the ANT ID and Bluetooth flag
+  eeprom_init(&old_ant_device_id, &enable_bluetooth);
+  new_ant_device_id = old_ant_device_id; //no change at this time.
+  profile_setup();                       // now set up the ant profile for ID 0
+
+  if (enable_bluetooth)
     ble_init();
 
   while (1)
   {
-    if (ui32_seconds_since_startup > 600)
+
+    //user has not made an ant ID change in the last 10 minutes after long press of PLUS button
+    if (ui32_seconds_since_startup > 600 && enable_bluetooth)
     {
-      ui32_seconds_since_startup = 0;             // turn off bluetooth after 10 min if left on
-      write_to_persistent_memory_and_reset(1, 0); //set enable_bluetooth to 0
+      ui32_seconds_since_startup = 0; // turn off bluetooth after 10 min if left on
+
+      eeprom_write_variables(old_ant_device_id, 0); // disable bluetooth and restart
     }
     // main timer calls main_timer_timeout every 10ms
-    // 100 main_ticks/s
-    if (main_ticks % (1000 / MSEC_PER_TICK) == 0) //every second
+    // check every second
+    if (main_ticks % (1000 / MSEC_PER_TICK) == 0)
     {
-      // see if there was a change to the ANT ID
+      // first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth on restart
       if (new_ant_device_id != old_ant_device_id)
-        write_to_persistent_memory_and_reset(0, new_ant_device_id); //write it to persistent memory and reset
+      {
+        old_ant_device_id = new_ant_device_id;
+        eeprom_write_variables(old_ant_device_id, 0); // DISABLE BLUETOOTH on restart
+      }
+      // bluetooth needs to be turned on by long press of the PLUS button
+      if (turn_bluetooth_on)
+        eeprom_write_variables(old_ant_device_id, 1); // Enable BLUETOOTH on restart
     }
   }
 }
