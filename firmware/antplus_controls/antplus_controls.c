@@ -91,18 +91,18 @@ static bool message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_m
      return false;
  }
 */
-bool buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button)
+void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button)
 {
   ASSERT(p_profile != NULL);
 
   bool send_page = false;
 
-  if (button == MINUS__PIN)
+  if (button == ENTER__PIN)
   {
     p_profile->page_73.utf8_character = 0;
     send_page = true;
   }
-  else if (button == PLUS__PIN)
+  else if (button == STANDBY__PIN)
   {
     p_profile->page_73.utf8_character = 1;
     send_page = true;
@@ -135,11 +135,6 @@ bool buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t but
     send_page = true;
     (void)err_code; // ignore
   }
-
-  if (send_page)
-    return true;
-  else
-    return false;
 }
 
 void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
