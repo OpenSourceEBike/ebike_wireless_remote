@@ -38,13 +38,13 @@ The remote is using the inexpensive VLCD5 handle bar remote keypad for control.
 * after you enter a new ANT+ LEV Device Number
 
 
-
 * What is left to be done:
-  * no battery voltage measurement on the hardware, firmware and so it is not reported to master / Edge
-  * Design a suitable spacer for 3D printing that can reuse the VLCD5 keypad and handlebar connector (basically, the top and bottom portions of the keypad)  Inital design attempts are located in the 3d_design folder. Please contribute if you can!
   * Bluetooth enabled bootloader to allow for wireless firmware updates
+  * Evaluate sending the brake sensors signal wireless
   * Planned feature: Long press the [POWER] button to turn off the TSDZ2 motor
   * Other ANT+ LEV button assignments (ie: Lights on/off Turn signals, etc)
+  * no battery voltage measurement on the hardware, firmware and so it is not reported to master / Edge
+  * Design a suitable spacer for 3D printing that can reuse the VLCD5 keypad and handlebar connector (basically, the top and bottom portions of the keypad)  Inital design attempts are located in the 3d_design folder. Please contribute if you can!
 
 
 **Components you will need:**
