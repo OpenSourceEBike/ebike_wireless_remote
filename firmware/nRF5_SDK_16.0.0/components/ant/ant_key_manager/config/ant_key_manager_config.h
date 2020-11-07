@@ -43,7 +43,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#warning THE PUBLIC ANT+ NETWORK KEYS ARE CURRENTLY BEING APPLIED!! \n
+#warning YOU NEED TO REGISTER AS A DEVELOPER WITH GARMIN TO OBTAIN THESE KEYS\n
+#warning THE ANT+ LEV and ANT+ CONTROLS PROFILES WILL NOT FUNCTION WITHOUT THESE KEYS\n
+#warning DEVELOPMENT AND USAGE IS WITHOUT ANY COSTS IF USED FOR NON-COMMERCIAL PURPOSES\n
+#warning FOR MORE INFORMATION AND TO REGISTER, SEE:\n
+#warning https://www.thisisant.com/developer/resources/tech-bulletin/network-keys-and-the-ant-managed-network\n
+#warning ONCE YOU HAVE THE KEYS, PLEASE ADD THEM TO THE FILE LOCATED HERE:\n
+#warning ./nRF5_SDK_16.0.0/components/ant/ant_key_manager/config/ant_key_manager_config.h\n
 /**
  * @addtogroup ant_key_manager
  * @{
