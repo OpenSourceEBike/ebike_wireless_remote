@@ -44,7 +44,7 @@
                 },
                 {
                     "description": "Flash firmware",
-                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_remote_with_SD.hex"
+                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_combined.hex"
                 },
                 {
                     "description": "Start debug",
