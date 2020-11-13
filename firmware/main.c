@@ -49,12 +49,19 @@
 #include "antplus_controls.h"
 #include "eeprom.h"
 #include "nrf_sdh_soc.h"
+#include "nrf_power.h"
+#include "nrf_dfu_ble_svci_bond_sharing.h"
+#include "nrf_svci_async_function.h"
+#include "nrf_svci_async_handler.h"
+#include "ble_dfu.h"
+#include "nrf_bootloader_info.h"
+#include "custom_board.h"
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-
-#define DEVICE_NAME "TSDZ2_wireless_remote" /**< Name of device. Will be included in the advertising data. */
+#define BUTTON_DFU_PRESS_TIMEOUT APP_TIMER_TICKS(10000)      //10 seconds
+#define DEVICE_NAME "TSDZ2_wireless_remote"                  /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -90,7 +97,8 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Han
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
-uint8_t turn_bluetooth_on = 0;
+uint8_t turn_bluetooth_on = 0;                                          //needs to be a flag to manage flash write events
+uint8_t turn_bluetooth_off = 0;                                         //needs to be a flag to manage flash write events
 /**@brief Struct that contains pointers to the encoded advertising data. */
 
 static ble_gap_adv_data_t m_adv_data =
@@ -140,6 +148,94 @@ static void advertising_start(bool erase_bonds)
   {
     uint32_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
+  }
+}
+/**@brief Handler for shutdown preparation.
+ *
+ * @details During shutdown procedures, this function will be called at a 1 second interval
+ *          untill the function returns true. When the function returns true, it means that the
+ *          app is ready to reset to DFU mode.
+ *
+ * @param[in]   event   Power manager event.
+ *
+ * @retval  True if shutdown is allowed by this power manager handler, otherwise false.
+ */
+static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
+{
+  switch (event)
+  {
+  case NRF_PWR_MGMT_EVT_PREPARE_DFU:
+    NRF_LOG_INFO("Power management wants to reset to DFU mode.");
+    // YOUR_JOB: Get ready to reset into DFU mode
+    //
+    // If you aren't finished with any ongoing tasks, return "false" to
+    // signal to the system that reset is impossible at this stage.
+    //
+    // Here is an example using a variable to delay resetting the device.
+    //
+    // if (!m_ready_for_reset)
+    // {
+    //      return false;
+    // }
+    // else
+    //{
+    //
+    //    // Device ready to enter
+    //   uint32_t err_code;
+    //  err_code = ser_sd_transport_close();
+    //   APP_ERROR_CHECK(err_code);
+    //   err_code = app_timer_stop_all();
+    //   APP_ERROR_CHECK(err_code);
+    //}
+    break;
+
+  default:
+    // YOUR_JOB: Implement any of the other events available from the power management module:
+    //      -NRF_PWR_MGMT_EVT_PREPARE_SYSOFF
+    //      -NRF_PWR_MGMT_EVT_PREPARE_WAKEUP
+    //      -NRF_PWR_MGMT_EVT_PREPARE_RESET
+    return true;
+  }
+
+  NRF_LOG_INFO("Power management allowed to reset to DFU mode.");
+  return true;
+}
+
+//lint -esym(528, m_app_shutdown_handler)
+/**@brief Register application shutdown handler with priority 0.
+ */
+NRF_PWR_MGMT_HANDLER_REGISTER(app_shutdown_handler, 0);
+
+static void buttonless_dfu_sdh_state_observer(nrf_sdh_state_evt_t state, void *p_context)
+{
+  if (state == NRF_SDH_EVT_STATE_DISABLED)
+  {
+    // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
+    nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
+
+    //Go to system off.
+    nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
+  }
+}
+static void ble_dfu_buttonless_evt_handler(ble_dfu_buttonless_evt_type_t event)
+{
+
+  switch (event)
+  {
+  case BLE_DFU_EVT_BOOTLOADER_ENTER_PREPARE:
+    NRF_LOG_INFO("Device is preparing to enter bootloader mode\r\n");
+    break;
+
+  case BLE_DFU_EVT_BOOTLOADER_ENTER:
+    NRF_LOG_INFO("Device will enter bootloader mode\r\n");
+    break;
+
+  case BLE_DFU_EVT_BOOTLOADER_ENTER_FAILED:
+    NRF_LOG_ERROR("Device failed to enter bootloader mode\r\n");
+    break;
+  default:
+    NRF_LOG_INFO("Unknown event from ble_dfu.\r\n");
+    break;
   }
 }
 
@@ -242,12 +338,14 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 //APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
+APP_TIMER_DEF(m_timer_button_dfu_press_timeout);
 
 //APP_TIMER_DEF(m_antplus_controls_send);
 
 button_pins_t m_buttons_wait_to_send = 0;
 bool m_timer_buttons_send_running = false;
 bool m_button_long_press = false;
+bool m_button_dfu_press = false;
 //set default  old ant ID for reset;
 
 uint8_t old_ant_device_id = 0; //initially in pairing mode
@@ -394,7 +492,19 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 
   m_button_long_press = true;
 }
+static void timer_button_dfu_press_timeout_handler(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
 
+  m_button_dfu_press = true;
+}
+void enter_dfu(void)
+{
+  // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
+  nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+  sd_nvic_SystemReset(); //reset and start again
+                         //  nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
+}
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
 
@@ -404,8 +514,12 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
   switch (button_action)
   {
 
-  case APP_BUTTON_RELEASE:    //process the button actions
-  {                           // button released
+  case APP_BUTTON_RELEASE: //process the button actions
+  {                        // button released
+    if (m_button_dfu_press)
+    {
+      enter_dfu(); //hold any button for 10 seconds to go to dfu mode
+    }
     if (!m_button_long_press) //not a long press
     {
 
@@ -438,7 +552,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       if (button_pin == MINUS__PIN)
       // store bluetooth flag and reset
       {
-        //unassigned
+        turn_bluetooth_off = 1; // disable BLUETOOTH on restart
       }
       else if (button_pin == PLUS__PIN)
       {
@@ -464,18 +578,25 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
-
+    err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timerf
+    APP_ERROR_CHECK(err_code);
     break;
   }
   case APP_BUTTON_PUSH: //button pushed
   {
 
     //start long button timer
+
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
+    err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timerf
+    APP_ERROR_CHECK(err_code);
+    err_code = app_timer_start(m_timer_button_dfu_press_timeout, BUTTON_DFU_PRESS_TIMEOUT, NULL); //start the long press timerf
+    APP_ERROR_CHECK(err_code);
+    m_button_dfu_press = false;
 
     break;
   }
@@ -487,12 +608,13 @@ void buttons_init(void)
   ret_code_t err_code;
 
   //The array must be static because a pointer to it will be saved in the button handler module.
-  static app_button_cfg_t buttons[4] =
+  static app_button_cfg_t buttons[5] =
       {
           {(uint8_t)PLUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
           {(uint8_t)MINUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
           {(uint8_t)ENTER__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
+          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
+          {(uint8_t)BUTTON_1, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
 
   err_code = app_button_init(buttons, ARRAY_SIZE(buttons), BUTTON_DETECTION_DELAY);
   // this will enable wakeup from ultra low power mode (any button press)
@@ -500,6 +622,7 @@ void buttons_init(void)
   nrf_gpio_cfg_sense_input(MINUS__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(ENTER__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(STANDBY__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
+  nrf_gpio_cfg_sense_input(BOOTLOADER__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
 
   if (err_code == NRF_SUCCESS)
   {
@@ -516,10 +639,17 @@ void buttons_init(void)
                               timer_button_long_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
+  err_code = app_timer_create(&m_timer_button_dfu_press_timeout,
+                              APP_TIMER_MODE_SINGLE_SHOT,
+                              timer_button_dfu_press_timeout_handler);
+
+  APP_ERROR_CHECK(err_code);
 
   err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
+  APP_ERROR_CHECK(err_code);
+  err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
 }
 void shutdown(void)
@@ -624,7 +754,8 @@ static void ble_stack_init(void)
   uint32_t ram_start = 0;
   err_code = nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start);
   APP_ERROR_CHECK(err_code);
-  ram_start += 16;
+  ram_start += 32;
+  //ram_start += 10028;
   // Enable BLE stack.
   err_code = nrf_sdh_ble_enable(&ram_start);
   APP_ERROR_CHECK(err_code);
@@ -694,7 +825,12 @@ static void services_init(void)
   ret_code_t err_code;
   ble_ant_id_init_t init = {0};
   nrf_ble_qwr_init_t qwr_init = {0};
-
+  // Initialize the DFU service
+  ble_dfu_buttonless_init_t dfus_init =
+      {
+          .evt_handler = ble_dfu_buttonless_evt_handler};
+  err_code = ble_dfu_buttonless_init(&dfus_init);
+  APP_ERROR_CHECK(err_code);
   // Initialize Queued Write Module.
   qwr_init.error_handler = nrf_qwr_error_handler;
 
@@ -916,7 +1052,6 @@ static void peer_manager_init(void)
 void ble_init(void)
 {
   ble_stack_init();
-
   gap_params_init();
   gatt_init();
   services_init();
@@ -944,6 +1079,9 @@ int main(void)
   init_app_timers();
   ret_code_t err_code = nrf_pwr_mgmt_init();
   APP_ERROR_CHECK(err_code);
+  // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
+  err_code = ble_dfu_buttonless_async_svci_init();
+  APP_ERROR_CHECK(err_code);
   buttons_init();
   softdevice_setup();
   //read the flash memory and setup the ANT ID and Bluetooth flag
@@ -956,7 +1094,6 @@ int main(void)
 
   while (1)
   {
-
     //user has not made an ant ID change in the last 10 minutes after long press of PLUS button
     if (ui32_seconds_since_startup > 600 && enable_bluetooth)
     {
@@ -977,6 +1114,8 @@ int main(void)
       // bluetooth needs to be turned on by long press of the PLUS button
       if (turn_bluetooth_on)
         eeprom_write_variables(old_ant_device_id, 1); // Enable BLUETOOTH on restart
+      if (turn_bluetooth_off)
+        eeprom_write_variables(old_ant_device_id, 0); // Disable BLUETOOTH on restart
     }
   }
 }
