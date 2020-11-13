@@ -8,8 +8,6 @@ see: [wireless EBike TSDZ2](https://github.com/OpenSource-EBike-firmware/TSDZ2_w
 
 For questions, please post on [this forum message](https://endless-sphere.com/forums/viewtopic.php?f=28&t=106346).
 
-
-
 See controlling a Garmin 1030 bike computer for assist levels and page control using a simulated ANT+ LEV Ebike in this video:
 
 [![video](https://img.youtube.com/vi/s7URIMVzcwc/hqdefault.jpg)](https://www.youtube.com/watch?v=s7URIMVzcwc)
@@ -22,11 +20,12 @@ nRFConnect is available on the play store here:
 (https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en_CA&gl=US)
 
 ## Current state
-2020.11.04:
+2020.11.13:
 The remote is using the inexpensive VLCD5 handle bar remote keypad for control.
 * The firmware works well as an Edge Remote to change page views on the bike computer (tested on Garmin Edge devices).
 * The firmware works well as a LEV remote control to change assist levels on an e-bike.
 * The remote will go into ultra low power mode if it fails to connect to a device within ~30 seconds, or if no buttons are pressed for 1 hour. The system wakes up from ultra low power when the user presses any button.
+* Firmware can be updated wirelessly using Bluetooth on a smatphone or PC
 
 * OPERATION:
 * Short Press the [MENU] button to switch pages.
@@ -39,7 +38,6 @@ The remote is using the inexpensive VLCD5 handle bar remote keypad for control.
 
 
 * What is left to be done:
-  * Bluetooth enabled bootloader to allow for wireless firmware updates
   * Evaluate sending the brake sensors signal wireless
   * Planned feature: Long press the [POWER] button to turn off the TSDZ2 motor
   * Other ANT+ LEV button assignments (ie: Lights on/off Turn signals, etc)
