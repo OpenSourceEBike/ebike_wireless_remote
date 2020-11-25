@@ -87,10 +87,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
 	$(SDK_ROOT)/components/ble/common/ble_advdata.c \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu_bonded.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu_unbonded.c  \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu.c \
-  $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_svci.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
@@ -152,8 +148,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/log/src \
   $(SDK_ROOT)/components/libraries/bsp \
   $(SDK_ROOT)/components/libraries/bootloader \
-  $(SDK_ROOT)/components/libraries/bootloader/dfu \
-  $(SDK_ROOT)/components/libraries/bootloader/ble_dfu \
   $(SDK_ROOT)/components/libraries/sortlist \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/components/libraries/hardfault \
@@ -190,7 +184,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias \
 	$(SDK_ROOT)/components/ble/ble_services/ble_cts_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_nus \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu \
   $(SDK_ROOT)/components/ble/ble_services/ble_hids \
 	$(SDK_ROOT)/components/ble/peer_manager \
 	$(SDK_ROOT)/components/ble/ble_services/ble_tps \
@@ -240,8 +233,7 @@ CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -BL_SETTINGS_ACCESS_ONLY
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -DNRF_DFU_SVCI_ENABLED
-CFLAGS += -DNRF_DFU_TRANSPORT_BLE=1
+
 
 #CFLAGS += -Wall -Werror
 CFLAGS += -Wall
@@ -266,8 +258,7 @@ ASMFLAGS += -DNRF52840_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
 ASMFLAGS += -DS340
 ASMFLAGS += -DSOFTDEVICE_PRESENT
-ASMFLAGS += -DNRF_DFU_SVCI_ENABLED
-ASMFLAGS += -DNRF_DFU_TRANSPORT_BLE=1
+
 
 # Linker flags
 LDFLAGS += $(OPT)
