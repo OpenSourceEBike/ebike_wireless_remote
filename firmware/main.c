@@ -50,10 +50,6 @@
 #include "eeprom.h"
 #include "nrf_sdh_soc.h"
 #include "nrf_power.h"
-#include "nrf_dfu_ble_svci_bond_sharing.h"
-#include "nrf_svci_async_function.h"
-#include "nrf_svci_async_handler.h"
-#include "ble_dfu.h"
 #include "nrf_bootloader_info.h"
 #include "custom_board.h"
 
@@ -148,94 +144,6 @@ static void advertising_start(bool erase_bonds)
   {
     uint32_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
-  }
-}
-/**@brief Handler for shutdown preparation.
- *
- * @details During shutdown procedures, this function will be called at a 1 second interval
- *          untill the function returns true. When the function returns true, it means that the
- *          app is ready to reset to DFU mode.
- *
- * @param[in]   event   Power manager event.
- *
- * @retval  True if shutdown is allowed by this power manager handler, otherwise false.
- */
-static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
-{
-  switch (event)
-  {
-  case NRF_PWR_MGMT_EVT_PREPARE_DFU:
-    NRF_LOG_INFO("Power management wants to reset to DFU mode.");
-    // YOUR_JOB: Get ready to reset into DFU mode
-    //
-    // If you aren't finished with any ongoing tasks, return "false" to
-    // signal to the system that reset is impossible at this stage.
-    //
-    // Here is an example using a variable to delay resetting the device.
-    //
-    // if (!m_ready_for_reset)
-    // {
-    //      return false;
-    // }
-    // else
-    //{
-    //
-    //    // Device ready to enter
-    //   uint32_t err_code;
-    //  err_code = ser_sd_transport_close();
-    //   APP_ERROR_CHECK(err_code);
-    //   err_code = app_timer_stop_all();
-    //   APP_ERROR_CHECK(err_code);
-    //}
-    break;
-
-  default:
-    // YOUR_JOB: Implement any of the other events available from the power management module:
-    //      -NRF_PWR_MGMT_EVT_PREPARE_SYSOFF
-    //      -NRF_PWR_MGMT_EVT_PREPARE_WAKEUP
-    //      -NRF_PWR_MGMT_EVT_PREPARE_RESET
-    return true;
-  }
-
-  NRF_LOG_INFO("Power management allowed to reset to DFU mode.");
-  return true;
-}
-
-//lint -esym(528, m_app_shutdown_handler)
-/**@brief Register application shutdown handler with priority 0.
- */
-NRF_PWR_MGMT_HANDLER_REGISTER(app_shutdown_handler, 0);
-
-static void buttonless_dfu_sdh_state_observer(nrf_sdh_state_evt_t state, void *p_context)
-{
-  if (state == NRF_SDH_EVT_STATE_DISABLED)
-  {
-    // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
-    nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
-
-    //Go to system off.
-    nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
-  }
-}
-static void ble_dfu_buttonless_evt_handler(ble_dfu_buttonless_evt_type_t event)
-{
-
-  switch (event)
-  {
-  case BLE_DFU_EVT_BOOTLOADER_ENTER_PREPARE:
-    NRF_LOG_INFO("Device is preparing to enter bootloader mode\r\n");
-    break;
-
-  case BLE_DFU_EVT_BOOTLOADER_ENTER:
-    NRF_LOG_INFO("Device will enter bootloader mode\r\n");
-    break;
-
-  case BLE_DFU_EVT_BOOTLOADER_ENTER_FAILED:
-    NRF_LOG_ERROR("Device failed to enter bootloader mode\r\n");
-    break;
-  default:
-    NRF_LOG_INFO("Unknown event from ble_dfu.\r\n");
-    break;
   }
 }
 
@@ -345,7 +253,7 @@ APP_TIMER_DEF(m_timer_button_dfu_press_timeout);
 button_pins_t m_buttons_wait_to_send = 0;
 bool m_timer_buttons_send_running = false;
 bool m_button_long_press = false;
-bool m_button_dfu_press = false;
+
 //set default  old ant ID for reset;
 
 uint8_t old_ant_device_id = 0; //initially in pairing mode
@@ -495,16 +403,10 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 static void timer_button_dfu_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
-
-  m_button_dfu_press = true;
-}
-void enter_dfu(void)
-{
-  // Softdevice was disabled before going into reset. Inform bootloader to skip CRC on next boot.
   nrf_power_gpregret_set(BOOTLOADER_DFU_START);
   sd_nvic_SystemReset(); //reset and start again
-                         //  nrf_power_gpregret2_set(BOOTLOADER_DFU_SKIP_CRC);
 }
+
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
 
@@ -516,10 +418,6 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 
   case APP_BUTTON_RELEASE: //process the button actions
   {                        // button released
-    if (m_button_dfu_press)
-    {
-      enter_dfu(); //hold any button for 10 seconds to go to dfu mode
-    }
     if (!m_button_long_press) //not a long press
     {
 
@@ -596,7 +494,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_start(m_timer_button_dfu_press_timeout, BUTTON_DFU_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
-    m_button_dfu_press = false;
+
 
     break;
   }
@@ -825,13 +723,8 @@ static void services_init(void)
   ret_code_t err_code;
   ble_ant_id_init_t init = {0};
   nrf_ble_qwr_init_t qwr_init = {0};
-  // Initialize the DFU service
-  ble_dfu_buttonless_init_t dfus_init =
-      {
-          .evt_handler = ble_dfu_buttonless_evt_handler};
-  err_code = ble_dfu_buttonless_init(&dfus_init);
-  APP_ERROR_CHECK(err_code);
-  // Initialize Queued Write Module.
+
+   // Initialize Queued Write Module.
   qwr_init.error_handler = nrf_qwr_error_handler;
 
   err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
@@ -1078,9 +971,6 @@ int main(void)
   lfclk_config();
   init_app_timers();
   ret_code_t err_code = nrf_pwr_mgmt_init();
-  APP_ERROR_CHECK(err_code);
-  // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
-  err_code = ble_dfu_buttonless_async_svci_init();
   APP_ERROR_CHECK(err_code);
   buttons_init();
   softdevice_setup();
