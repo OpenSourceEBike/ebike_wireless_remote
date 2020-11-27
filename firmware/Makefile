@@ -286,9 +286,12 @@ LIB_FILES += -lc -lnosys -lm
 # Default target - first one defined
 default: TSDZ2_wireless_remote bl_settings final OTA
 
-# We use srec_cat here but if you want to be able to use the combined hex file with nRF Connect you should use Nordic's mergehex tool
 final:
 	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOT_LOADER) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
+
+# below is no bootloader option
+#final:
+#	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
 
 bl_settings:
 	$(SREC_PATH)nrfutil settings generate --family NRF52840 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --bootloader-version 1 --bl-settings-version 2 $(OUTPUT_DIRECTORY)/bl_settings.hex 
