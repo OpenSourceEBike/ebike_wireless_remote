@@ -31,10 +31,15 @@ The remote is using the inexpensive VLCD5 handle bar remote keypad for control.
   * Short Press the [MENU] button to switch pages.
   * Short press the [PLUS] button to increase the motor assist level
   * Short press the [MINUS] button to decrease the motor assist level
+  * Long Press the [MENU] button for 20 seconds to enter DFU mode.
+   A video showing a DFU process can be seen here:
+[![video](https://img.youtube.com/vi/va3LJoiosoc/hqdefault.jpg)](https://youtu.be/va3LJoiosoc) 
   * Long press the [PLUS] button to enter bluetooth mode to allow the ANT Device number to be set for the ebike you would like to control. (Device number '0' will pair with any ebike device number)
+  A video showing a ANT Device Number change process can be seen here:
+[![video](https://img.youtube.com/vi/_ALauuDxZuQ/hqdefault.jpg)](https://youtu.be/_ALauuDxZuQ) 
   * Long press the [Minus] button to exit bluetooth mode to save power. (Bluetooth will automatically turn off after:
-    * 10 minutes if you left bluetooth running
-    * after you enter a new ANT+ LEV Device Number
+    * 5 minutes if you left bluetooth running
+    * after you enter a new ANT+ LEV Device Numberv
 
 
 * What is left to be done:
