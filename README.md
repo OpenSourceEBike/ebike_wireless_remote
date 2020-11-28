@@ -14,7 +14,7 @@ See controlling a Garmin 1030 bike computer for assist levels and page control u
 
 See changing the ANT+ LEV Device Number (to connect to only one specific eBike) using the Nordic nRF Connect app in this video:
 
-[![video](https://img.youtube.com/vi/pvqh7uVm5ww/hqdefault.jpg)](https://www.youtube.com/watch?v=pvqh7uVm5ww)
+[![video](https://img.youtube.com/vi/_ALauuDxZuQ/hqdefault.jpg)](https://youtu.be/_ALauuDxZuQ) 
 
 nRFConnect is available on the play store here:
 (https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en_CA&gl=US)
@@ -31,10 +31,17 @@ The remote is using the inexpensive VLCD5 handle bar remote keypad for control.
   * Short Press the [MENU] button to switch pages.
   * Short press the [PLUS] button to increase the motor assist level
   * Short press the [MINUS] button to decrease the motor assist level
+  * Long Press the [MENU] button for 20 seconds to enter DFU mode.
+   A video showing a DFU process can be seen here:
+
+
+[![video](https://img.youtube.com/vi/va3LJoiosoc/hqdefault.jpg)](https://youtu.be/va3LJoiosoc) 
+  
+  
   * Long press the [PLUS] button to enter bluetooth mode to allow the ANT Device number to be set for the ebike you would like to control. (Device number '0' will pair with any ebike device number)
   * Long press the [Minus] button to exit bluetooth mode to save power. (Bluetooth will automatically turn off after:
-    * 10 minutes if you left bluetooth running
-    * after you enter a new ANT+ LEV Device Number
+    * 5 minutes if you left bluetooth running
+    * after you enter a new ANT+ LEV Device Numberv
 
 
 * What is left to be done:
