@@ -1,5 +1,6 @@
 PROJECT_NAME     := TSDZ2_wireless_remote
 TARGETS          := TSDZ2_wireless_remote
+
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ./nRF5_SDK_16.0.0
@@ -8,11 +9,14 @@ PROJ_DIR := .
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
-SOFT_DEVICE = $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex
-
+BOOT_LOADER = $(PROJ_DIR)/include/TSDZ2_bootloader_with_sd.hex
+APP_VER_MAJOR = 0
+APP_VER_MINOR = 5
 # Source files common to all targets
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_uart.c \
@@ -43,12 +47,46 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
   $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
-  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
+  $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
+  $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
+  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
+	$(SDK_ROOT)/modules/nrfx/hal/nrf_nvmc.c \
+  $(SDK_ROOT)/components/libraries/bsp/bsp.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ant.c \
+	$(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
+	$(SDK_ROOT)/components/libraries/atomic_flags/nrf_atflags.c \
+	$(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
+	$(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_sd.c \
+	$(SDK_ROOT)/components/libraries/fds/fds.c \
+	$(SDK_ROOT)/components/ble/common/ble_advdata.c \
+  $(SDK_ROOT)/components/ble/common/ble_conn_params.c \
+  $(SDK_ROOT)/components/ble/common/ble_conn_state.c \
+  $(SDK_ROOT)/components/ble/common/ble_srv_common.c \
+  $(SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
+  $(SDK_ROOT)/components/ble/nrf_ble_qwr/nrf_ble_qwr.c \
+  $(SDK_ROOT)/components/ble/peer_manager/gatt_cache_manager.c \
+  $(SDK_ROOT)/components/ble/peer_manager/gatts_cache_manager.c \
+  $(SDK_ROOT)/components/ble/peer_manager/id_manager.c \
+  $(SDK_ROOT)/components/ble/nrf_ble_gq/nrf_ble_gq.c \
+  $(SDK_ROOT)/components/ble/peer_manager/peer_data_storage.c \
+  $(SDK_ROOT)/components/ble/peer_manager/peer_database.c \
+  $(SDK_ROOT)/components/ble/peer_manager/peer_id.c \
+  $(SDK_ROOT)/components/ble/peer_manager/peer_manager.c \
+  $(SDK_ROOT)/components/ble/peer_manager/peer_manager_handler.c \
+  $(SDK_ROOT)/components/ble/peer_manager/pm_buffer.c \
+  $(SDK_ROOT)/components/ble/peer_manager/security_dispatcher.c \
+  $(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
+	$(SDK_ROOT)/components/ble/common/ble_advdata.c \
+  $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
@@ -75,12 +113,14 @@ SRC_FILES += \
   $(PROJ_DIR)/ant_lev/pages/ant_lev_page_34.c \
   $(PROJ_DIR)/ant_lev/pages/ant_lev_page_16.c \
   $(PROJ_DIR)/ant_lev/pages/ant_lev_common_data.c \
-  $(PROJ_DIR)/pins.c \
   $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/eeprom.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
   $(SDK_ROOT)/components/boards/boards.c \
-   
+  $(PROJ_DIR)/ble_services.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -94,6 +134,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/scheduler \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/components/libraries/atomic_fifo \
+  $(SDK_ROOT)/components/libraries/fifo \
+	$(SDK_ROOT)/components/libraries/fstorage \
+	$(SDK_ROOT)/components/libraries/fds \
   $(SDK_ROOT)/modules/nrfx/mdk \
   $(SDK_ROOT)/components/libraries/strerror \
   $(SDK_ROOT)/integration/nrfx/legacy \
@@ -104,11 +147,13 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/components/libraries/log/src \
   $(SDK_ROOT)/components/libraries/bsp \
+  $(SDK_ROOT)/components/libraries/bootloader \
   $(SDK_ROOT)/components/libraries/sortlist \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/components/libraries/hardfault \
   $(SDK_ROOT)/components/libraries/balloc \
   $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/components/libraries/svc \
   $(SDK_ROOT)/modules/nrfx \
   $(SDK_ROOT)/components/softdevice/common \
   $(SDK_ROOT)/components \
@@ -121,6 +166,36 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/mutex \
   $(SDK_ROOT)/components/libraries/pwr_mgmt \
   $(SDK_ROOT)/components/libraries/timer \
+  $(SDK_ROOT)/components/libraries/atomic_flags \
+	$(SDK_ROOT)/components/ble/common \
+	$(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_ias_c \
+	$(SDK_ROOT)/components/ble/ble_services/ble_gls \
+	$(SDK_ROOT)/components/ble/ble_advertising \
+	$(SDK_ROOT)/components/ble/ble_dtm \
+	$(SDK_ROOT)/components/ble/ble_services/ble_rscs_c \
+	$(SDK_ROOT)/components/ble/ble_services/ble_lls \
+	$(SDK_ROOT)/components/ble/ble_services/ble_bas \
+	$(SDK_ROOT)/components/ble/ble_services/ble_ans_c \
+	$(SDK_ROOT)/components/ble/ble_services/ble_nus_c \
+	$(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ble_oob_advdata_parser \
+	$(SDK_ROOT)/components/ble/ble_services/ble_lbs \
+  $(SDK_ROOT)/components/ble/ble_services/ble_hts \
+  $(SDK_ROOT)/components/ble/ble_services/ble_ias \
+	$(SDK_ROOT)/components/ble/ble_services/ble_cts_c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_nus \
+  $(SDK_ROOT)/components/ble/ble_services/ble_hids \
+	$(SDK_ROOT)/components/ble/peer_manager \
+	$(SDK_ROOT)/components/ble/ble_services/ble_tps \
+	$(SDK_ROOT)/components/ble/ble_services/ble_dis \
+	$(SDK_ROOT)/components/ble/nrf_ble_gatt \
+  $(SDK_ROOT)/components/ble/nrf_ble_qwr \
+	$(SDK_ROOT)/components/ble/ble_services/ble_lbs_c \
+	$(SDK_ROOT)/components/ble/ble_racp \
+	$(SDK_ROOT)/components/ble/ble_services/ble_hrs \
+  $(SDK_ROOT)/components/ble/ble_services/ble_rscs \
+	$(SDK_ROOT)/components/ble/peer_manager \
+	$(SDK_ROOT)/components/ble/ble_advertising \
   $(SDK_ROOT)/components/ant/ant_state_indicator \
   $(SDK_ROOT)/components/ant/ant_key_manager \
   $(SDK_ROOT)/components/ant/ant_key_manager/config \
@@ -131,9 +206,11 @@ INC_FOLDERS += \
   $(PROJ_DIR)/ant_lev/pages \
   $(PROJ_DIR)/antplus_controls \
   $(PROJ_DIR)/antplus_controls/pages \
-    $(PROJ_DIR)/config \
+  $(PROJ_DIR)/config \
   $(PROJ_DIR)/ \
+  $(PROJ_DIR)/include \
   $(SDK_ROOT)/integration/nrfx/legacy \
+  
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -148,19 +225,23 @@ CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
-# CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
 CFLAGS += -DNRF_SD_BLE_API_VERSION=6
 CFLAGS += -DS340
 CFLAGS += -DSOFTDEVICE_PRESENT
+CFLAGS += -BL_SETTINGS_ACCESS_ONLY
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror
+
+
+#CFLAGS += -Wall -Werror
+CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
+
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -172,12 +253,12 @@ ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DAPP_TIMER_V2
 ASMFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 ASMFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
-ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -DNRF52840_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
 ASMFLAGS += -DS340
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+
 
 # Linker flags
 LDFLAGS += $(OPT)
@@ -201,12 +282,23 @@ LIB_FILES += -lc -lnosys -lm
 
 .PHONY: default help
 
-# Default target - first one defined
-default: TSDZ2_wireless_remote TSDZ2_with_SD
 
-# We use srec_cat here but if you want to be able to use the combined hex file with nRF Connect you should use Nordic's mergehex tool
-TSDZ2_with_SD:
-	$(SREC_PATH)srec_cat $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -Intel -Output $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_with_SD.hex
+# Default target - first one defined
+default: TSDZ2_wireless_remote bl_settings final OTA
+
+final:
+	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOT_LOADER) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
+
+# below is no bootloader option
+#final:
+#	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
+
+bl_settings:
+	$(SREC_PATH)nrfutil settings generate --family NRF52840 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --bootloader-version 1 --bl-settings-version 2 $(OUTPUT_DIRECTORY)/bl_settings.hex 
+
+OTA:
+	$(SREC_PATH)nrfutil pkg generate --hw-version 52 --sd-req 0xB9 --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --key-file private.key --app-boot-validation VALIDATE_ECDSA_P256_SHA256 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_ota_update.zip
+
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -224,8 +316,7 @@ flash: default
 
 erase:
 	nrfjprog -f nrf52 --eraseall
-
-SDK_CONFIG_FILE := $(SDK_ROOT)/sdk_config.h
+SDK_CONFIG_FILE := .$(PROJ_DIR)/config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)

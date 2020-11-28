@@ -1,30 +1,29 @@
-/**
- * Copyright (c) 2016 - 2018, Nordic Semiconductor ASA
- * 
+/*
+ * Copyright (c) 2012 - 2017, Nordic Semiconductor ASA
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form, except as embedded into a Nordic
  *    Semiconductor ASA integrated circuit in a product or a software update for
  *    such product, must reproduce the above copyright notice, this list of
  *    conditions and the following disclaimer in the documentation and/or other
  *    materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
  *    contributors may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
- * 
+ *
  * 4. This software, with or without modification, must only be used with a
  *    Nordic Semiconductor ASA integrated circuit.
- * 
+ *
  * 5. Any software provided in binary form under this license must not be reverse
  *    engineered, decompiled, modified and/or disassembled.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY NORDIC SEMICONDUCTOR ASA "AS IS" AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -35,66 +34,52 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
-#ifndef NRF52840_MDK_USB_DONGLE_H
-#define NRF52840_MDK_USB_DONGLE_H
 
+/**
+  @addtogroup nrf_soc_api
+  @{
+  @defgroup nrf_soc_error SoC Library Error Codes
+  @{
+
+  @brief Error definitions for the SoC library
+
+*/
+
+/* Header guard */
+#ifndef NRF_ERROR_SOC_H__
+#define NRF_ERROR_SOC_H__
+
+#include "nrf_error.h"
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-#include "nrf_gpio.h"
+/* Mutex Errors */
+#define NRF_ERROR_SOC_MUTEX_ALREADY_TAKEN                 (NRF_ERROR_SOC_BASE_NUM + 0)  ///< Mutex already taken
 
-#ifdef CONFIG_GPIO_AS_PINRESET
-#error "CONFIG_GPIO_AS_PINRESET Should NOT be defined! Comment <CFLAGS += -DCONFIG_GPIO_AS_PINRESET> and <ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET> in Makefile."
-#endif
+/* NVIC errors */
+#define NRF_ERROR_SOC_NVIC_INTERRUPT_NOT_AVAILABLE        (NRF_ERROR_SOC_BASE_NUM + 1)  ///< NVIC interrupt not available
+#define NRF_ERROR_SOC_NVIC_INTERRUPT_PRIORITY_NOT_ALLOWED (NRF_ERROR_SOC_BASE_NUM + 2)  ///< NVIC interrupt priority not allowed
+#define NRF_ERROR_SOC_NVIC_SHOULD_NOT_RETURN              (NRF_ERROR_SOC_BASE_NUM + 3)  ///< NVIC should not return
 
-// LEDs definitions for nRF52840-MDK USB Dongle
-#define LEDS_NUMBER 3
+/* Power errors */
+#define NRF_ERROR_SOC_POWER_MODE_UNKNOWN                  (NRF_ERROR_SOC_BASE_NUM + 4)  ///< Power mode unknown
+#define NRF_ERROR_SOC_POWER_POF_THRESHOLD_UNKNOWN         (NRF_ERROR_SOC_BASE_NUM + 5)  ///< Power POF threshold unknown
+#define NRF_ERROR_SOC_POWER_OFF_SHOULD_NOT_RETURN         (NRF_ERROR_SOC_BASE_NUM + 6)  ///< Power off should not return
 
-#define LED_1 NRF_GPIO_PIN_MAP(0, 22)
-#define LED_2 NRF_GPIO_PIN_MAP(0, 23)
-#define LED_3 NRF_GPIO_PIN_MAP(0, 24)
-#define LED_START LED_1
-#define LED_STOP LED_3
+/* Rand errors */
+#define NRF_ERROR_SOC_RAND_NOT_ENOUGH_VALUES              (NRF_ERROR_SOC_BASE_NUM + 7)  ///< RAND not enough values
 
-#define LEDS_ACTIVE_STATE 0
-
-#define LEDS_LIST           \
-    {                       \
-        LED_1, LED_2, LED_3 \
-    }
-
-#define LEDS_INV_MASK LEDS_MASK
-
-#define BSP_LED_0 22
-#define BSP_LED_1 23
-#define BSP_LED_2 24
-
-#define BUTTONS_NUMBER 1
-
-#define BUTTON_1 NRF_GPIO_PIN_MAP(0, 18)
-#define BUTTON_PULL NRF_GPIO_PIN_PULLUP
-
-#define BUTTONS_ACTIVE_STATE 0
-
-#define BUTTONS_LIST \
-    {                \
-        BUTTON_1     \
-    }
-
-#define BSP_BUTTON_0 BUTTON_1
-
-#define RX_PIN_NUMBER 19
-#define TX_PIN_NUMBER 20
-#define CTS_PIN_NUMBER 0xFFFFFFFF // UART_PIN_DISCONNECTED
-#define RTS_PIN_NUMBER 0xFFFFFFFF // UART_PIN_DISCONNECTED
-#define HWFC false
+/* PPI errors */
+#define NRF_ERROR_SOC_PPI_INVALID_CHANNEL                 (NRF_ERROR_SOC_BASE_NUM + 8)  ///< Invalid PPI Channel
+#define NRF_ERROR_SOC_PPI_INVALID_GROUP                   (NRF_ERROR_SOC_BASE_NUM + 9)  ///< Invalid PPI Group
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif // NRF52840_MDK_USB_DONGLE_H
+#endif // NRF_ERROR_SOC_H__
+/**
+  @}
+  @}
+*/
