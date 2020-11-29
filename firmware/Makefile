@@ -6,11 +6,14 @@ OUTPUT_DIRECTORY := _build
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
 
+
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
 BOOTLOADER_DIR = $(PROJ_DIR)/bootloader/firmware/
-BOOTLOADER_HEX = $(BOOTLOADER_DIR)/_build/TSDZ2_bootloader_with_sd.hex
+#BOOTLOADER_HEX = $(BOOTLOADER_DIR)/_build/TSDZ2_bootloader_with_sd.hex
+BOOTLOADER_HEX = $(PROJ_DIR)/include/TSDZ2_bootloader_with_sd.hex
+
 
 APP_VER_MAJOR = 0
 APP_VER_MINOR = 5
@@ -237,6 +240,7 @@ CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 
 
+
 #CFLAGS += -Wall -Werror
 CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -260,6 +264,7 @@ ASMFLAGS += -DNRF52840_XXAA
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
 ASMFLAGS += -DS340
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+
 
 
 # Linker flags
@@ -289,7 +294,9 @@ LIB_FILES += -lc -lnosys -lm
 default: TSDZ2_wireless_remote bl_settings final OTA
 
 final:
-	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
+	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex -intel $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex 
+#final:
+#	mergehex $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex  $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
 
 # below is no bootloader option
 #final:

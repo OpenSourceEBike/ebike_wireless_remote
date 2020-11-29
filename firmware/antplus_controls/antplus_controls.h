@@ -30,11 +30,12 @@
 #define CONTROLS_SENS_CHANNEL_TYPE CHANNEL_TYPE_SLAVE // TX controls channel type.
 
 #define CONTROLS_SENS_CHANNEL_CONFIG_DEF(NAME,                                        \
-                                         CHANNEL_NUMBER,                              \
-                                         TRANSMISSION_TYPE,                           \
-                                         DEVICE_NUMBER,                               \
-                                         NETWORK_NUMBER)                              \
-    static const ant_channel_config_t CONCAT_2(NAME, _channel_controls_sens_config) = \
+                                    CHANNEL_NUMBER,                              \
+                                    TRANSMISSION_TYPE,                           \
+                                    DEVICE_NUMBER,                                  \
+                                    NETWORK_NUMBER,                                 \
+                                    CONTROLS_MSG_PERIOD_4Hz)                        \
+   static const ant_channel_config_t CONCAT_2(NAME, _channel_controls_sens_config) = \
         {                                                                             \
             .channel_number = (CHANNEL_NUMBER),                                       \
             .channel_type = CONTROLS_SENS_CHANNEL_TYPE,                               \
@@ -56,6 +57,7 @@
             .p_cb = &CONCAT_2(NAME, _controls_sens_cb),                                         \
             .evt_handler = (EVT_HANDLER),                                                       \
     }
+   
 #define CONTROLS_SENS_PROFILE_CONFIG(NAME) &CONCAT_2(NAME, _profile_controls_sens_config)
 
 typedef enum
