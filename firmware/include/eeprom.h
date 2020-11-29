@@ -14,9 +14,11 @@ typedef struct configurations
 {
     uint32_t ui8_bluetooth_flag;
     uint32_t ui8_ant_device_id;
+    uint32_t ui8_ant_lev_flag;
+    uint32_t ui8_ant_controls_flag;
 } configurations_t;
 
-void eeprom_init(uint8_t *ant_num, uint8_t *bluetooth);
-void eeprom_write_variables(uint8_t ant_num, uint8_t bluetooth);
+void eeprom_init(uint8_t *ant_num, uint8_t *bluetooth,uint8_t *ebike,uint8_t *garmin);
+void eeprom_write_variables(uint8_t ant_num, uint8_t bluetooth,uint8_t ebike,uint8_t garmin);
 
 #endif /* _EEPROM_H_ */

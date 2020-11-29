@@ -83,10 +83,11 @@
 #define SEC_PARAM_MAX_KEY_SIZE 16                      /**< Maximum encryption key size. */
 
 #define APP_FEATURE_NOT_SUPPORTED BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2 /**< Reply when unsupported features are requested. */
-
-NRF_BLE_GATT_DEF(m_gatt);           /**< GATT module instance. */
-NRF_BLE_QWR_DEF(m_qwr);             /**< Context for the Queued Write module.*/
-BLE_ADVERTISING_DEF(m_advertising); /**< Advertising module instance. */
+u_int8_t ebike = 1;                                                 //ANT LEV ebike as a default
+u_int8_t garmin = 0;                                               //no garmin computer as a default
+NRF_BLE_GATT_DEF(m_gatt);                                              /**< GATT module instance. */
+NRF_BLE_QWR_DEF(m_qwr);                                                /**< Context for the Queued Write module.*/
+BLE_ADVERTISING_DEF(m_advertising);                                    /**< Advertising module instance. */
 BLE_ANT_ID_DEF(m_ble_ant_id_service);
 //test flash write completed
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Handle of the current connection. */
@@ -591,14 +592,14 @@ static void profile_setup(void)
   //retrieve the old ant id from a power cycle
 
   m_ant_lev_channel_lev_disp_config.device_number = old_ant_device_id;
-  if (EBIKE)
+  if (ebike)
   {
     err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
     APP_ERROR_CHECK(err_code);
     err_code = ant_lev_disp_open(&m_ant_lev);
     APP_ERROR_CHECK(err_code);
   }
-  if (GARMIN)
+  if (garmin)
   {
     err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
     APP_ERROR_CHECK(err_code);
@@ -961,22 +962,46 @@ void check_interrupt_flags(void)
   //first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth off on restart
   if (new_ant_device_id != old_ant_device_id)
   {
-    old_ant_device_id = new_ant_device_id;
+    //first check for configuration changes
+    // 0x90 - turn ANT LEV control on
+    // 0x91 - turn ANT LEV control off
+    // 0x92 - turn ANT CONTROL on
+    // 0x93 - turn ANT CONTROL off
+    // 0x94 - turn brake control on? - future
+    // 0x95 - turn brake control off? -future
+    switch (new_ant_device_id)
+    {
+    case 0x90: //ANT LEV on
+      ebike = 1;
+      break;
+    case 0x91: //ANT LEV off
+      ebike = 0;
+      break;
+    case 0x92: //ANT CONTROL on
+      garmin = 1;
+      break;
+    case 0x93: //ANT CONTROL off
+      garmin = 0;
+      break;
+    default: //ant ID change requested
+      old_ant_device_id = new_ant_device_id;
+    }
 
-    // save and disable BLUETOOTH on restart
-    eeprom_write_variables(old_ant_device_id, 0);
+    // save changes and disable BLUETOOTH on restart
+    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin);
   }
 
   //now check for bluetooth flag on plus button press
   if (turn_bluetooth_on)
   {
-    eeprom_write_variables(old_ant_device_id, 1); // Enable BLUETOOTH on restart}
+    eeprom_write_variables(old_ant_device_id, 1, ebike, garmin); // Enable BLUETOOTH on restart}
   }
   //finally check bluetooth timeout flag and minus button press
   if (turn_bluetooth_off)
   {
-    eeprom_write_variables(old_ant_device_id, 0); // Disable BLUETOOTH on restart}
+    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin); // Disable BLUETOOTH on restart}
   }
+  
   //check to see if dfu is requested
   if (enter_dfu)
   {
@@ -1008,7 +1033,7 @@ int main(void)
   buttons_init();
   softdevice_setup();
   //read the flash memory and setup the ANT ID and Bluetooth flag
-  eeprom_init(&old_ant_device_id, &enable_bluetooth);
+  eeprom_init(&old_ant_device_id, &enable_bluetooth,&ebike,&garmin);
   new_ant_device_id = old_ant_device_id; //no change at this time.
 
   if (enable_bluetooth)

@@ -6,21 +6,14 @@ OUTPUT_DIRECTORY := _build
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
 
-#set EBIKE to 1 if you want the remote to control an ebike with ANT+ LEV
-#if you  want the remote to only control a Garmin bike computer, set this  0
-
-EBIKE ?= 1
-
-#set GARMIN to 1 if you want to control a Garmin bike computer
-# if you do not have a Garmin bike computer, set this to 0  
-# to avoid timeout issues with bluetooth in the firmware
-GARMIN ?= 1
 
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
 BOOTLOADER_DIR = $(PROJ_DIR)/bootloader/firmware/
-BOOTLOADER_HEX = $(BOOTLOADER_DIR)/_build/TSDZ2_bootloader_with_sd.hex
+#BOOTLOADER_HEX = $(BOOTLOADER_DIR)/_build/TSDZ2_bootloader_with_sd.hex
+BOOTLOADER_HEX = $(PROJ_DIR)/include/TSDZ2_bootloader_with_sd.hex
+
 
 APP_VER_MAJOR = 0
 APP_VER_MINOR = 5
@@ -246,17 +239,7 @@ CFLAGS += -BL_SETTINGS_ACCESS_ONLY
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 
-ifeq ($(EBIKE), 1)
-CFLAGS += -DEBIKE=1
-else
-CFLAGS += -DEBIKE=0
-endif
 
-ifeq ($(GARMIN), 1)
-CFLAGS += -DGARMIN=1
-else
-CFLAGS += -DGARMIN=0
-endif
 
 #CFLAGS += -Wall -Werror
 CFLAGS += -Wall
@@ -321,7 +304,9 @@ LIB_FILES += -lc -lnosys -lm
 default: TSDZ2_wireless_remote bl_settings final OTA
 
 final:
-	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
+	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex -intel $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex 
+#final:
+#	mergehex $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex  $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
 
 # below is no bootloader option
 #final:
