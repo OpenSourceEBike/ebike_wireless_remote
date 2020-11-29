@@ -19,7 +19,9 @@ GARMIN ?= 1
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
-BOOT_LOADER = $(PROJ_DIR)/include/TSDZ2_bootloader_with_sd.hex
+BOOTLOADER_DIR = $(PROJ_DIR)/bootloader/firmware/
+BOOTLOADER_HEX = $(BOOTLOADER_DIR)/_build/TSDZ2_bootloader_with_sd.hex
+
 APP_VER_MAJOR = 0
 APP_VER_MINOR = 5
 # Source files common to all targets
@@ -319,7 +321,7 @@ LIB_FILES += -lc -lnosys -lm
 default: TSDZ2_wireless_remote bl_settings final OTA
 
 final:
-	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOT_LOADER) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
+	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
 
 # below is no bootloader option
 #final:
