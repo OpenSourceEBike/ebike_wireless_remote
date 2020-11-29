@@ -6,6 +6,16 @@ OUTPUT_DIRECTORY := _build
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
 
+#set EBIKE to 1 if you want the remote to control an ebike with ANT+ LEV
+#if you  want the remote to only control a Garmin bike computer, set this  0
+
+EBIKE ?= 1
+
+#set GARMIN to 1 if you want to control a Garmin bike computer
+# if you do not have a Garmin bike computer, set this to 0  
+# to avoid timeout issues with bluetooth in the firmware
+GARMIN ?= 1
+
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
   LINKER_SCRIPT  := TSDZ2_wireless_gcc_nrf52.ld
 
@@ -234,6 +244,17 @@ CFLAGS += -BL_SETTINGS_ACCESS_ONLY
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 
+ifeq ($(EBIKE), 1)
+CFLAGS += -DEBIKE=1
+else
+CFLAGS += -DEBIKE=0
+endif
+
+ifeq ($(GARMIN), 1)
+CFLAGS += -DGARMIN=1
+else
+CFLAGS += -DGARMIN=0
+endif
 
 #CFLAGS += -Wall -Werror
 CFLAGS += -Wall
@@ -259,6 +280,17 @@ ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
 ASMFLAGS += -DS340
 ASMFLAGS += -DSOFTDEVICE_PRESENT
 
+ifeq ($(EBIKE), 1)
+ASMFLAGS += -DEBIKE=1
+else
+ASMFLAGS += -DEBIKE=0
+endif
+
+ifeq ($(GARMIN), 1)
+ASMFLAGS += -DGARMIN=1
+else
+ASMFLAGS += -DGARMIN=0
+endif
 
 # Linker flags
 LDFLAGS += $(OPT)

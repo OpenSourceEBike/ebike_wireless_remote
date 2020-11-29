@@ -57,7 +57,7 @@
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
 #define BUTTON_DFU_PRESS_TIMEOUT APP_TIMER_TICKS(10000)      //10 seconds
-#define DEVICE_NAME "TSDZ2_remote"                  /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -97,7 +97,8 @@ bool turn_bluetooth_on = false;                                         //needs 
 bool turn_bluetooth_off = false;
 bool enter_dfu = false;
 uint8_t old_ant_device_id = 0; //initially in pairing mode
-uint8_t new_ant_device_id = 0; // used to check for change of ant id                                       //needs to be a flag to manage flash write events
+uint8_t new_ant_device_id = 0; // used to check for change of ant id
+
 /**@brief Struct that contains pointers to the encoded advertising data. */
 
 static ble_gap_adv_data_t m_adv_data =
@@ -123,38 +124,6 @@ static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. *
 //uint32_t err_code=0;
 volatile uint32_t main_ticks;
 uint8_t enable_bluetooth = 0;
-void check_interrupt_flags(void)
-{
-  //need flags to handle interrupt events for flash write
-  //needed becaause of interrupt priority
-  //see: https://devzone.nordicsemi.com/f/nordic-q-a/57067/calling-fds_record_update-in-isr
-
-  //first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth off on restart
-  if (new_ant_device_id != old_ant_device_id)
-  {
-    old_ant_device_id = new_ant_device_id;
-    nrf_delay_ms(1000);
-    // save and disable BLUETOOTH on restart
-    eeprom_write_variables(old_ant_device_id, 0);
-  }
-
-  //now check for bluetooth flag on plus button press
-  if (turn_bluetooth_on)
-  {
-    eeprom_write_variables(old_ant_device_id, 1); // Enable BLUETOOTH on restart}
-  }
-  //finally check bluetooth timeout flag and minus button press
-  if (turn_bluetooth_off)
-  {
-    eeprom_write_variables(old_ant_device_id, 0); // Disable BLUETOOTH on restart}
-  }
-  //check to see if dfu is requested
-  if (enter_dfu)
-  {
-    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
-    wait_and_reset();
-  }
-}
 
 static void delete_bonds(void)
 {
@@ -293,31 +262,43 @@ bool m_button_long_press = false;
 
 #define MSEC_PER_TICK 10
 APP_TIMER_DEF(bluetooth_timer);
+
 #define BLUETOOTH_TIMEOUT APP_TIMER_TICKS(1000 * 60 * 5) //turn off bluetooth after 5 min
 
 void shutdown(void);
+
 #define CONTROLS_HW_REVISION 2
-#define CONTROLS_MANUFACTURER_ID 255
-#define CONTROLS_MODEL_NUMBER 2
-#define CONTROLS_SW_REVISION_MAJOR 2
-#define CONTROLS_SW_REVISION_MINOR 2
-#define CONTROLS_SERIAL_NUMBER 3241
-#define CONTROLS_CHANNEL_NUM 1 // ?? seems can be any value from 0 to 8
-#define ANT_LEV_ANT_OBSERVER_PRIO 1
 #define LEV_HW_REVISION 1
+
+#define CONTROLS_MANUFACTURER_ID 255
 #define LEV_MANUFACTURER_ID 254
+
+#define CONTROLS_MODEL_NUMBER 2
 #define LEV_MODEL_NUMBER 1
+
+#define CONTROLS_SW_REVISION_MAJOR 2
 #define LEV_SW_REVISION_MAJOR 1
+
+#define CONTROLS_SW_REVISION_MINOR 2
 #define LEV_SW_REVISION_MINOR 1
+
+#define CONTROLS_SERIAL_NUMBER 3241
 #define LEV_SERIAL_NUMBER 1234
-#define LEV_CHANNEL_NUM 0             // ?? seems can be any value from 0 to 8
-#define CONTROLS_CHAN_ID_TRANS_TYPE 0 // LEV table 4.2
+
+#define CONTROLS_CHANNEL_NUM 1 //see: NRF_SDH_ANT_TOTAL_CHANNELS_ALLOCATED in sdk_config.sys
+#define LEV_CHANNEL_NUM 0      //LEV on chan 0,CONTROL on chan 1
+
+#define ANT_LEV_ANT_OBSERVER_PRIO 1
+#define ANT_CONTROLS_ANT_OBSERVER_PRIO 1
+
+#define CONTROLS_CHAN_ID_TRANS_TYPE 0 // slave wildcard match
 #define LEV_CHAN_ID_TRANS_TYPE 0
-#define CONTROLS_CHAN_ID_DEV_NUM 0 // [1 - 65535], LEV table 4.2 0 for wildcard
+
+#define CONTROLS_CHAN_ID_DEV_NUM 0 // wildcard match to any master
 #define LEV_CHAN_ID_DEV_NUM 0
-#define LEV_ANTPLUS_NETWORK_NUM 0
-#define CONTROLS_ANTPLUS_NETWORK_NUM 1
-#define ANTPLUS_CONTROLS_ANT_OBSERVER_PRIO 1
+
+#define ANTPLUS_NETWORK_NUM 0
+
 // @snippet [ANT LEV RX Instance]
 void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event);
 void antplus_controls_evt_handler(antplus_controls_profile_t *p_profile, antplus_controls_evt_t event);
@@ -326,14 +307,15 @@ LEV_DISP_CHANNEL_CONFIG_DEF(m_ant_lev,
                             LEV_CHANNEL_NUM,
                             LEV_CHAN_ID_TRANS_TYPE,
                             LEV_CHAN_ID_DEV_NUM,
-                            LEV_ANTPLUS_NETWORK_NUM,
+                            ANTPLUS_NETWORK_NUM,
                             LEV_MSG_PERIOD_4Hz);
 
 CONTROLS_SENS_CHANNEL_CONFIG_DEF(m_antplus_controls,
                                  CONTROLS_CHANNEL_NUM,
                                  CONTROLS_CHAN_ID_TRANS_TYPE,
                                  CONTROLS_CHAN_ID_DEV_NUM,
-                                 CONTROLS_ANTPLUS_NETWORK_NUM);
+                                 ANTPLUS_NETWORK_NUM,
+                                 CONTROLS_MSG_PERIOD_4Hz);
 
 CONTROLS_SENS_PROFILE_CONFIG_DEF(m_antplus_controls,
                                  antplus_controls_evt_handler);
@@ -342,7 +324,7 @@ static ant_lev_profile_t m_ant_lev;
 static antplus_controls_profile_t m_antplus_controls;
 
 NRF_SDH_ANT_OBSERVER(m_ant_observer, ANT_LEV_ANT_OBSERVER_PRIO, ant_lev_disp_evt_handler, &m_ant_lev);
-NRF_SDH_ANT_OBSERVER(m_ant_observer_control, ANTPLUS_CONTROLS_ANT_OBSERVER_PRIO, antplus_controls_sens_evt_handler, &m_antplus_controls);
+NRF_SDH_ANT_OBSERVER(m_ant_observer_control, ANT_CONTROLS_ANT_OBSERVER_PRIO, antplus_controls_sens_evt_handler, &m_antplus_controls);
 
 uint16_t cnt_1;
 
@@ -410,11 +392,14 @@ void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event)
     break;
   }
 }
+
 static void bluetooth_timer_timeout(void *p_context)
 {
+
   UNUSED_PARAMETER(p_context);
   turn_bluetooth_off = true; //set the flag for the idle loop
 }
+
 static void timer_button_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -422,6 +407,7 @@ static void timer_button_press_timeout_handler(void *p_context)
   // enter ultra low power mode
   shutdown();
 }
+
 static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -435,7 +421,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     // set flag to enable bluetooth on restart -needed becaause of interrupt priority
     turn_bluetooth_off = true;
   }
-  m_button_long_press=true;
+  m_button_long_press = true;
 }
 static void timer_button_dfu_press_timeout_handler(void *p_context)
 {
@@ -456,34 +442,33 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
   switch (button_action)
   {
 
-  case APP_BUTTON_RELEASE:    //process the button actions
-  {                           // button released
-   
-      if (button_pin == MINUS__PIN)
-      //motor assist increase
-      {
-        buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
-        m_button_long_press=false;
-      }
-      else if (button_pin == PLUS__PIN)
-      //motor assist decrease
-      {
-        buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
-      }
-      else if (button_pin == ENTER__PIN)
-      //pageup on bike computer
-      {
-        buttons_send_pag73(&m_antplus_controls, button_pin);
-      }
-      else if (button_pin == STANDBY__PIN)
-      //unassigned
-      {
-        //turn off the motor power
-        // buttons_send_pag73(&m_antplus_controls, button_pin);
-      }
-      m_button_long_press=false; //reset the long press timer
-    
-    
+  case APP_BUTTON_RELEASE: //process the button actions
+  {                        // button released
+
+    if (button_pin == MINUS__PIN)
+    //motor assist increase
+    {
+      buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
+      m_button_long_press = false;
+    }
+    else if (button_pin == PLUS__PIN)
+    //motor assist decrease
+    {
+      buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
+    }
+    else if (button_pin == ENTER__PIN)
+    //pageup on bike computer
+    {
+      buttons_send_pag73(&m_antplus_controls, button_pin);
+    }
+    else if (button_pin == STANDBY__PIN)
+    //unassigned
+    {
+      //turn off the motor power
+      // buttons_send_pag73(&m_antplus_controls, button_pin);
+    }
+    m_button_long_press = false; //reset the long press timer
+
     //reset the button timers
     err_code = app_timer_stop(m_timer_button_press_timeout); //1hr timeout for low power
     APP_ERROR_CHECK(err_code);
@@ -493,7 +478,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
-   break;
+    break;
   }
   case APP_BUTTON_PUSH: //button pushed
   {
@@ -509,7 +494,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_start(m_timer_button_dfu_press_timeout, BUTTON_DFU_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
-    m_button_long_press=false;
+    m_button_long_press = false;
 
     break;
   }
@@ -606,20 +591,20 @@ static void profile_setup(void)
   //retrieve the old ant id from a power cycle
 
   m_ant_lev_channel_lev_disp_config.device_number = old_ant_device_id;
-
-  err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
-  APP_ERROR_CHECK(err_code);
-  err_code = antplus_controls_sens_init(&m_antplus_controls,
-                                        CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls),
-                                        CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
-  APP_ERROR_CHECK(err_code);
-  err_code = antplus_controls_sens_open(&m_antplus_controls);
-  APP_ERROR_CHECK(err_code);
-  err_code = ant_lev_disp_open(&m_ant_lev);
-  APP_ERROR_CHECK(err_code);
-
-  err_code = ant_state_indicator_channel_opened();
-  APP_ERROR_CHECK(err_code);
+  if (EBIKE)
+  {
+    err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
+    APP_ERROR_CHECK(err_code);
+    err_code = ant_lev_disp_open(&m_ant_lev);
+    APP_ERROR_CHECK(err_code);
+  }
+  if (GARMIN)
+  {
+    err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
+    APP_ERROR_CHECK(err_code);
+    err_code = antplus_controls_sens_open(&m_antplus_controls);
+    APP_ERROR_CHECK(err_code);
+  }
 }
 
 static void softdevice_setup(void)
@@ -631,9 +616,8 @@ static void softdevice_setup(void)
 
   err_code = nrf_sdh_ant_enable();
   APP_ERROR_CHECK(err_code);
-  err_code = ant_plus_key_set(CONTROLS_ANTPLUS_NETWORK_NUM);
-  APP_ERROR_CHECK(err_code);
-  err_code = ant_plus_key_set(LEV_ANTPLUS_NETWORK_NUM);
+
+  err_code = ant_plus_key_set(ANTPLUS_NETWORK_NUM);
   APP_ERROR_CHECK(err_code);
 }
 
@@ -968,7 +952,39 @@ void ble_init(void)
   peer_manager_init();
   advertising_start(true);
 }
+void check_interrupt_flags(void)
+{
+  //need flags to handle interrupt events for flash write
+  //this is required due to interrupt priority
+  //see: https://devzone.nordicsemi.com/f/nordic-q-a/57067/calling-fds_record_update-in-isr
 
+  //first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth off on restart
+  if (new_ant_device_id != old_ant_device_id)
+  {
+    old_ant_device_id = new_ant_device_id;
+
+    // save and disable BLUETOOTH on restart
+    eeprom_write_variables(old_ant_device_id, 0);
+  }
+
+  //now check for bluetooth flag on plus button press
+  if (turn_bluetooth_on)
+  {
+    eeprom_write_variables(old_ant_device_id, 1); // Enable BLUETOOTH on restart}
+  }
+  //finally check bluetooth timeout flag and minus button press
+  if (turn_bluetooth_off)
+  {
+    eeprom_write_variables(old_ant_device_id, 0); // Disable BLUETOOTH on restart}
+  }
+  //check to see if dfu is requested
+  if (enter_dfu)
+  {
+    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+    nrf_delay_ms(1000);
+    sd_nvic_SystemReset(); //reset and start again
+  }
+}
 static void init_app_timers(void)
 {
   ret_code_t err_code;
@@ -976,6 +992,7 @@ static void init_app_timers(void)
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_create(&bluetooth_timer, APP_TIMER_MODE_SINGLE_SHOT, bluetooth_timer_timeout);
   APP_ERROR_CHECK(err_code);
+
   err_code = app_timer_stop(bluetooth_timer);
   APP_ERROR_CHECK(err_code);
 }
@@ -997,20 +1014,18 @@ int main(void)
   if (enable_bluetooth)
   { //start the bluetooth 10 min timer
     err_code = app_timer_start(bluetooth_timer, BLUETOOTH_TIMEOUT, NULL);
-    APP_ERROR_CHECK(err_code);
+    //reenable bluetooth after 55 sec if ANT LEV is not connected
+
     ble_init();
   }
-  else
-  {
-    // if bluetooth not enabled then set up the ant profile for ID 0
-    //bluetooth and ant will conflict if enabled simultaneously with app_timer
-    profile_setup();
-  }
 
+  profile_setup(); //set up the ANT profiles
+
+  //idle loop
   while (true)
   {
-   
-   nrf_pwr_mgmt_run(); //idle
+
+    nrf_pwr_mgmt_run(); //idle
     check_interrupt_flags();
   }
 }
