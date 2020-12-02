@@ -52,11 +52,13 @@
 #include "nrf_power.h"
 #include "nrf_bootloader_info.h"
 #include "custom_board.h"
+#include "boards.h"
+#include "nrf_gpio.h"
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-#define BUTTON_DFU_PRESS_TIMEOUT APP_TIMER_TICKS(10000)      //10 seconds
+#define BUTTON_CONFIG_PRESS_TIMEOUT APP_TIMER_TICKS(2000)    //1 second cycle to display configuration
 #define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
@@ -83,8 +85,9 @@
 #define SEC_PARAM_MAX_KEY_SIZE 16                      /**< Maximum encryption key size. */
 
 #define APP_FEATURE_NOT_SUPPORTED BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2 /**< Reply when unsupported features are requested. */
-u_int8_t ebike = 1;                                                 //ANT LEV ebike as a default
-u_int8_t garmin = 0;                                               //no garmin computer as a default
+u_int8_t ebike = 1;                                                    //ebike control as default                                                //ANT LEV ebike as a default
+u_int8_t garmin = 0;                                                   //no garmin computer as a default
+u_int8_t brake = 0;                                                    //no brake control as default
 NRF_BLE_GATT_DEF(m_gatt);                                              /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                    /**< Advertising module instance. */
@@ -96,7 +99,6 @@ static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buf
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
 bool turn_bluetooth_on = false;                                         //needs to be a flag to manage flash write events
 bool turn_bluetooth_off = false;
-bool enter_dfu = false;
 uint8_t old_ant_device_id = 0; //initially in pairing mode
 uint8_t new_ant_device_id = 0; // used to check for change of ant id
 
@@ -251,7 +253,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 //APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
-APP_TIMER_DEF(m_timer_button_dfu_press_timeout);
+APP_TIMER_DEF(m_timer_button_config_press_timeout);
 
 //APP_TIMER_DEF(m_antplus_controls_send);
 
@@ -412,6 +414,8 @@ static void timer_button_press_timeout_handler(void *p_context)
 static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
+  ret_code_t err_code;
+
   if (nrf_gpio_pin_read(PLUS__PIN) == 0)
   {
     // set flag to enable bluetooth on restart -needed becaause of interrupt priority
@@ -422,15 +426,40 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     // set flag to enable bluetooth on restart -needed becaause of interrupt priority
     turn_bluetooth_off = true;
   }
-  m_button_long_press = true;
-}
-static void timer_button_dfu_press_timeout_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
   if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   {
-    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-    enter_dfu = true;
+    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
+    APP_ERROR_CHECK(err_code);
+  }
+  m_button_long_press = true;
+}
+static void timer_button_config_press_timeout_handler(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+  //display configuration using board LEDs
+
+  //led 0 (green) ANT LEV active
+  if (ebike)
+  {
+    bsp_board_led_on(BSP_BOARD_LED_0);
+    nrf_delay_ms(500);
+    bsp_board_led_off(BSP_BOARD_LED_0);
+  }
+
+  //led 1 (red) ANT CONTROLS active
+  if (garmin)
+  {
+    bsp_board_led_on(BSP_BOARD_LED_1);
+    nrf_delay_ms(500);
+    bsp_board_led_off(BSP_BOARD_LED_1);
+  }
+
+  //led 2 (blue) brake control active
+  if (brake)
+  {
+    bsp_board_led_on(BSP_BOARD_LED_2);
+    nrf_delay_ms(500);
+    bsp_board_led_off(BSP_BOARD_LED_2);
   }
 }
 
@@ -477,24 +506,25 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timerf
+    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
+    //turn off the leds
+    bsp_board_led_off(BSP_BOARD_LED_0);
+    bsp_board_led_off(BSP_BOARD_LED_1);
+    bsp_board_led_off(BSP_BOARD_LED_2);
     break;
   }
   case APP_BUTTON_PUSH: //button pushed
   {
-
-    //start long button and dfu timers
 
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timerf
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
-    err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timerf
+    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_start(m_timer_button_dfu_press_timeout, BUTTON_DFU_PRESS_TIMEOUT, NULL); //start the long press timerf
-    APP_ERROR_CHECK(err_code);
+
     m_button_long_press = false;
 
     break;
@@ -538,9 +568,9 @@ void buttons_init(void)
                               timer_button_long_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_create(&m_timer_button_dfu_press_timeout,
-                              APP_TIMER_MODE_SINGLE_SHOT,
-                              timer_button_dfu_press_timeout_handler);
+  err_code = app_timer_create(&m_timer_button_config_press_timeout,
+                              APP_TIMER_MODE_REPEATED,
+                              timer_button_config_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
 
@@ -548,7 +578,7 @@ void buttons_init(void)
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_stop(m_timer_button_dfu_press_timeout); //stop the long press timer
+  err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
 }
 void shutdown(void)
@@ -967,8 +997,9 @@ void check_interrupt_flags(void)
     // 0x91 - turn ANT LEV control off
     // 0x92 - turn ANT CONTROL on
     // 0x93 - turn ANT CONTROL off
-    // 0x94 - turn brake control on? - future
-    // 0x95 - turn brake control off? -future
+    // 0x94 - turn brake control on
+    // 0x95 - turn brake control off
+    // 0x99 - initiate DFU
     switch (new_ant_device_id)
     {
     case 0x90: //ANT LEV on
@@ -983,31 +1014,34 @@ void check_interrupt_flags(void)
     case 0x93: //ANT CONTROL off
       garmin = 0;
       break;
+    case 0x94: //brake control on
+      brake = 1;
+      break;
+    case 0x95: //brake control off
+      brake = 0;
+      break;
+    case 0x99: //DFU mode
+      nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+      nrf_delay_ms(1000);
+      sd_nvic_SystemReset(); //reset and start again
+      break;
     default: //ant ID change requested
       old_ant_device_id = new_ant_device_id;
     }
 
     // save changes and disable BLUETOOTH on restart
-    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin);
+    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake);
   }
 
   //now check for bluetooth flag on plus button press
   if (turn_bluetooth_on)
   {
-    eeprom_write_variables(old_ant_device_id, 1, ebike, garmin); // Enable BLUETOOTH on restart}
+    eeprom_write_variables(old_ant_device_id, 1, ebike, garmin, brake); // Enable BLUETOOTH on restart}
   }
   //finally check bluetooth timeout flag and minus button press
   if (turn_bluetooth_off)
   {
-    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin); // Disable BLUETOOTH on restart}
-  }
-  
-  //check to see if dfu is requested
-  if (enter_dfu)
-  {
-    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
-    nrf_delay_ms(1000);
-    sd_nvic_SystemReset(); //reset and start again
+    eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake); // Disable BLUETOOTH on restart}
   }
 }
 static void init_app_timers(void)
@@ -1021,19 +1055,30 @@ static void init_app_timers(void)
   err_code = app_timer_stop(bluetooth_timer);
   APP_ERROR_CHECK(err_code);
 }
+static void leds_init(void)
+{
+  ret_code_t ret_val;
+  if (LEDS_NUMBER > 0)
+  {
 
+    bsp_board_init(BSP_INIT_LEDS);
+    ret_val = bsp_init(BSP_INIT_LEDS, NULL);
+    APP_ERROR_CHECK(ret_val);
+  }
+}
 int main(void)
 {
   ret_code_t err_code;
 
   lfclk_config();
+  leds_init();
   init_app_timers();
   err_code = nrf_pwr_mgmt_init();
   APP_ERROR_CHECK(err_code);
   buttons_init();
   softdevice_setup();
   //read the flash memory and setup the ANT ID and Bluetooth flag
-  eeprom_init(&old_ant_device_id, &enable_bluetooth,&ebike,&garmin);
+  eeprom_init(&old_ant_device_id, &enable_bluetooth, &ebike, &garmin, &brake);
   new_ant_device_id = old_ant_device_id; //no change at this time.
 
   if (enable_bluetooth)

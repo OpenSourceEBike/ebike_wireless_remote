@@ -34,7 +34,7 @@ fds_record_t record =
         .data.p_data = &m_configurations,
         //The length of a data record is always expressed in 4-byte units (words).
         //.data.length_words = (sizeof(m_configurations)) / sizeof(uint32_t),
-        .data.length_words = 4,
+        .data.length_words = 5,
 };
 
 static void fds_evt_handler(fds_evt_t const *p_evt)
@@ -79,7 +79,7 @@ void wait_and_reset(void)
   sd_nvic_SystemReset(); //reset and start again
 }
 
-void eeprom_init(uint8_t *ant_id, uint8_t *bluetooth_flag,uint8_t *ebike_flag,uint8_t *garmin_flag)
+void eeprom_init(uint8_t *ant_id, uint8_t *bluetooth_flag, uint8_t *ebike_flag, uint8_t *garmin_flag, uint8_t *brake_flag)
 {
   ret_code_t err_code;
 
@@ -107,21 +107,22 @@ void eeprom_init(uint8_t *ant_id, uint8_t *bluetooth_flag,uint8_t *ebike_flag,ui
     //change the ant id and bluetooth flag
     *ant_id = m_configurations.ui8_ant_device_id;
     *bluetooth_flag = m_configurations.ui8_bluetooth_flag;
-    *ebike_flag=m_configurations.ui8_ant_lev_flag;
-    *garmin_flag=m_configurations.ui8_ant_controls_flag;
+    *ebike_flag = m_configurations.ui8_ant_lev_flag;
+    *garmin_flag = m_configurations.ui8_ant_controls_flag;
+    *brake_flag = m_configurations.ui8_brake_flag;
   }
   else // no flash record, write DEFAULTS TO FLASH and reset
   {
     m_configurations.ui8_ant_device_id = 0;
     m_configurations.ui8_bluetooth_flag = 0;
-    m_configurations.ui8_ant_lev_flag =1;
-    m_configurations.ui8_ant_controls_flag=0;
+    m_configurations.ui8_ant_lev_flag = 1;
+    m_configurations.ui8_ant_controls_flag = 0;
     err_code = fds_record_write(&m_desc_config, &record);
     APP_ERROR_CHECK(err_code);
     wait_and_reset();
   }
 }
-void eeprom_write_variables(uint8_t ant_num, uint8_t bluetooth, uint8_t ebike, uint8_t garmin)
+void eeprom_write_variables(uint8_t ant_num, uint8_t bluetooth, uint8_t ebike, uint8_t garmin, uint8_t brake)
 {
   //delete previous records
   ret_code_t err_code;
@@ -129,6 +130,7 @@ void eeprom_write_variables(uint8_t ant_num, uint8_t bluetooth, uint8_t ebike, u
   m_configurations.ui8_bluetooth_flag = bluetooth;
   m_configurations.ui8_ant_lev_flag = ebike;
   m_configurations.ui8_ant_controls_flag = garmin;
+  m_configurations.ui8_brake_flag = brake;
   //now update the  record
 
   err_code = fds_record_update(&m_desc_config, &record);
