@@ -22,4 +22,4 @@ jobs:
         encodedString: ${{ secrets.ANT_KEY_MANAGER_CONFIG }}
 
     - name: make
-      run: docker run -v $(pwd):/workspace ghcr.io/charliebruce/nrf5-docker-build:sdk-16.0.0 bash -c "cd /workspace/firmware && make"
+      run: docker run -v $(pwd):/workspace ghcr.io/charliebruce/nrf5-docker-build:sdk-16.0.0 bash -c "cd /workspace/firmware/bootloader/firmware && make && cd /workspace/firmware && make"
