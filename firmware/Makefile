@@ -5,6 +5,7 @@ OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ./nRF5_SDK_16.0.0
 PROJ_DIR := .
+SD_REQ := 0xB9 #s340 sd is required
 
 
 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.out: \
@@ -15,8 +16,8 @@ BOOTLOADER_DIR = $(PROJ_DIR)/bootloader/firmware/
 BOOTLOADER_HEX = $(PROJ_DIR)/include/TSDZ2_bootloader_with_sd.hex
 
 
-APP_VER_MAJOR = 0
-APP_VER_MINOR = 5
+APP_VER_MAJOR = 1
+APP_VER_MINOR = 0
 # Source files common to all targets
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
@@ -295,18 +296,12 @@ default: TSDZ2_wireless_remote bl_settings final OTA
 
 final:
 	srec_cat $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex -intel $(OUTPUT_DIRECTORY)/bl_settings.hex -intel $(BOOTLOADER_HEX) -intel -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex 
-#final:
-#	mergehex $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex  $(OUTPUT_DIRECTORY)/bl_settings.hex $(BOOTLOADER_HEX) -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex -intel -address-length=4
-
-# below is no bootloader option
-#final:
-#	mergehex -m $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex $(SDK_ROOT)/components/softdevice/s340/hex/ANT_s340_nrf52840_6.1.1.hex -o $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_combined.hex
 
 bl_settings:
-	$(SREC_PATH)nrfutil settings generate --family NRF52840 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --bootloader-version 1 --bl-settings-version 2 $(OUTPUT_DIRECTORY)/bl_settings.hex 
+	$(SREC_PATH)nrfutil settings generate --family NRF52840 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --bootloader-version 10 --bl-settings-version 2 $(OUTPUT_DIRECTORY)/bl_settings.hex 
 
 OTA:
-	$(SREC_PATH)nrfutil pkg generate --hw-version 52 --sd-req 0xB9 --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --key-file private.key --app-boot-validation VALIDATE_ECDSA_P256_SHA256 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_ota_update.zip
+	$(SREC_PATH)nrfutil pkg generate --hw-version 52 --sd-req $(SD_REQ) --application-version-string $(APP_VER_MAJOR).$(APP_VER_MINOR).0 --application $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote.hex --key-file $(PROJ_DIR)/include/private.key --app-boot-validation VALIDATE_ECDSA_P256_SHA256 $(OUTPUT_DIRECTORY)/TSDZ2_wireless_remote_ota_update.zip
 
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
