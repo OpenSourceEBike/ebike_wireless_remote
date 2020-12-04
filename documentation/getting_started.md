@@ -13,12 +13,16 @@
 Wire up the remote per the above schematic.
 * The CRC2032 button cell powers up the wireless board. Connect the cell positive to the pin 10 / VIN and the negative to the pin 8 / GND.
 * VLCD5 handle bar remote keypad has 4 buttons and 5 wires (1 wire for each button and 1 common wire to all buttons). Connect the wires directly to the wireless board.
-* For flashing the firmware, that you will need to do only once to get started, solder the 4 wires to the STLinkV2 Once the firmware is flashed, all future updates can be done wirelessly.
+* For flashing the firmware, solder the 4 wires to the STLinkV2 Once the firmware is flashed. Please note that this only has to be done once; all future firmware updates can be done wirelessly.
 
 ## Flashing the firmware
-Flash the firmware with any tool that works for you. 
-###Linux
-Use OpenOCD.
+Flash the firmware with either Windows or Linux Ubuntu.
+The firmware HEX file to flash is "ebike_wireless_remote_with_sd_v1.0.0.hex" located in github releases. 
+## Flash automatically with Linux Ubuntu and Visual Studio Code (VSCode)
+The easiest way to flash the software is to install the VSCode software toolchain for debugging. Follow these instructions, then flash the release hex file using VSCode.
+[Configure Visual Code Studio IDE for development, flash and debug the firmware](development-flash_and_debug_firmware.md)
+
+## Flash manually using OpenOCD.
 Steps: 
 1. Connect your ST-Link to the board, opena terminal,  and use the following OpenOCD command to flash the bootloader: "$OPENOCD_DIR/bin/openocd" -f interface/stlink.cfg -c "transport select hla_swd" -f target/nrf52.cfg -c "init; halt; program ebike_wireless_remote_with_sd_v1.0.0.hex verify; reset; exit"
 2. If you see ** Verified OK **, the flashing has been successful.
@@ -29,10 +33,6 @@ Use the STM32 ST-LINK Utility. Here the main steps:
 * Target Chip erase
 * Load bin file (load the firmware bin file)
 * Target program
-
-
-The firmware HEX file to flash is "ebike_wireless_remote_with_sd_v1.0.0.hex" located in the github releases. 
-
-
+(needs further description)
   
-##[back](../README.md)
+## [back](../README.md)

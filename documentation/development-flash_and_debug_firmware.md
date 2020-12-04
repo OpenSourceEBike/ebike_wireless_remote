@@ -72,3 +72,4 @@ TSDZ2_with_SD:
   $(SREC_PATH)srec_cat $(OUTPUT_DIRECTORY)/settings.hex -Intel $(SOFT_DEVICE) -Intel $(OUTPUT_DIRECTORY)/TSDZ2_wireless.hex -Intel -Output $(OUTPUT_DIRECTORY)/TSDZ2_wireless_with_SD.hex
 ```
 2. Or flash a more permission bootloader which doesn't do CRC checks using the dfu/open_bootloader/pca100059_usb_debug example from the SDK.
+##[back](../README.md)

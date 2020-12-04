@@ -1,12 +1,18 @@
 # Remote operation
+Short Press buttons
+----
 * Short Press the [MENU] button to switch pages on an ANT+ CONTROLS device (ie: garmin bike computer)
 * Short press the [PLUS] button to increase the motor assist level (ANT+ LEV control)
 * Short press the [MINUS] button to decrease the motor assist level (ANT+ LEV control)
-* Long press the [PLUS] button to enter bluetooth mode to allow the configuration options to be set as discussed below 
-* Long press the [Minus] button to exit bluetooth mode to save power. 
+  
+Long Press Buttons
+-----
+* Long press the [ENTER] button to cycle through the configuration LED display.     [Configuration Options](configuration.md) 
+* Long press the [PLUS] button to start bluetooth to allow the [Configuration Options](configuration.md)  to be set.
+* Long press the [Minus] button to stop bluetooth to save power. 
   Bluetooth will also automatically turn off after:
     * 5 minutes if you left bluetooth running
-    * after you enter any configuration value
+    * After you change any [Configuration Options](configuration.md) 
       (See Configuration Options below)
   * Planned feature: Long press the [POWER] button to turn off the TSDZ2 motor
 
