@@ -8,10 +8,10 @@
  */
 
 #include <stdio.h>
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
+#include <stdint.h>
+
 #include "nrf.h"
-#include "hardfault.h"
+//#include "hardfault.h"
 #include "app_error.h"
 #include "app_timer.h"
 #include "nrf_pwr_mgmt.h"
@@ -54,6 +54,9 @@
 #include "custom_board.h"
 #include "boards.h"
 #include "nrf_gpio.h"
+#include "bsp.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
@@ -93,17 +96,17 @@ NRF_BLE_QWR_DEF(m_qwr);                                                /**< Cont
 BLE_ADVERTISING_DEF(m_advertising);                                    /**< Advertising module instance. */
 BLE_ANT_ID_DEF(m_ble_ant_id_service);
 //test flash write completed
-static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                /**< Handle of the current connection. */
-static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
-static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
-static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
-bool turn_bluetooth_on = false;                                         //needs to be a flag to manage flash write events
+static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
+//static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
+//static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
+//static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
+bool turn_bluetooth_on = false; //needs to be a flag to manage flash write events
 bool turn_bluetooth_off = false;
 uint8_t old_ant_device_id = 0; //initially in pairing mode
 uint8_t new_ant_device_id = 0; // used to check for change of ant id
 
 /**@brief Struct that contains pointers to the encoded advertising data. */
-
+/*
 static ble_gap_adv_data_t m_adv_data =
     {
         .adv_data =
@@ -114,7 +117,7 @@ static ble_gap_adv_data_t m_adv_data =
             {
                 .p_data = m_enc_scan_response_data,
                 .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX}};
-
+*/
 static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. */
     {
         {BLE_UUID_HEALTH_THERMOMETER_SERVICE, BLE_UUID_TYPE_BLE},
@@ -437,7 +440,9 @@ static void timer_button_config_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   //display configuration using board LEDs
-
+  bsp_board_led_off(BSP_BOARD_LED_0);
+  bsp_board_led_off(BSP_BOARD_LED_1);
+  bsp_board_led_off(BSP_BOARD_LED_2);
   //led 0 (green) ANT LEV active
   if (ebike)
   {
@@ -1082,10 +1087,8 @@ int main(void)
   new_ant_device_id = old_ant_device_id; //no change at this time.
 
   if (enable_bluetooth)
-  { //start the bluetooth 10 min timer
+  { //start the bluetooth 5 min timer
     err_code = app_timer_start(bluetooth_timer, BLUETOOTH_TIMEOUT, NULL);
-    //reenable bluetooth after 55 sec if ANT LEV is not connected
-
     ble_init();
   }
 
