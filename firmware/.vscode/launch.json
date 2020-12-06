@@ -47,10 +47,7 @@
                 {
                     "text": "monitor halt"
                 },
-                {                    
-                    "description": "Erase PSEL",
-                    "text": "monitor flash write_image erase ${workspaceFolder}/include/pselreset_xxaa.hex.hex"
-                },
+                
                 {
                     "description": "Flash firmware",
                     "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_remote_combined.hex"

@@ -18,21 +18,14 @@ Wire up the remote per the above schematic.
 ## Flashing the firmware
 Flash the firmware with either Windows or Linux Ubuntu.
 The firmware HEX file to flash is "ebike_wireless_remote_with_sd_v1.0.0.hex" located in github releases. 
-## Flash automatically with Linux Ubuntu and Visual Studio Code (VSCode)
-The easiest way to flash the software is to install the VSCode software toolchain for debugging. Follow these instructions, then flash the release hex file using VSCode.
-[Configure Visual Code Studio IDE for development, flash and debug the firmware](development-flash_and_debug_firmware.md)
 
-## Flash manually using OpenOCD.
-Steps: 
-1. Connect your ST-Link to the board, opena terminal,  and use the following OpenOCD command to flash the bootloader: "$OPENOCD_DIR/bin/openocd" -f interface/stlink.cfg -c "transport select hla_swd" -f target/nrf52.cfg -c "init; halt; program ebike_wireless_remote_with_sd_v1.0.0.hex verify; reset; exit"
-2. If you see ** Verified OK **, the flashing has been successful.
-
-###Windows
-Use the STM32 ST-LINK Utility. Here the main steps:
-
-* Target Chip erase
-* Load bin file (load the firmware bin file)
-* Target program
-(needs further description)
+----
+----
+[Flashing Instructions for Windows](windows.md)
+----
+-----
+[Flashing Instructions for Ubuntu](ubuntu.md)
+----
+----
   
 ## [back](../README.md)
