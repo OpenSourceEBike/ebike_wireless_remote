@@ -35,8 +35,11 @@
 
 This will flash and verify the write.
 If you see ** Verified OK **, the flashing has been successful.
+
 Congratulations!
+-------
 You now have the board programmed.
+
 Future firmware upgrades can be done wirelessly.
   
 ## [back](getting_started.md)
