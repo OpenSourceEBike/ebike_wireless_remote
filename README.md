@@ -11,6 +11,9 @@ You can  purchase on the market ebike remote controls. ie: the [Garmin EBike Rem
 However, our remote control is considerably less expensive and has additional features.
 
 ----
+[Getting Started](documentation/getting_started.md)
+-------
+-------
 [Operation](documentation/operation.md)
 -----------
 ---
@@ -26,9 +29,7 @@ However, our remote control is considerably less expensive and has additional fe
 [Further Development and Planned features](documentation/planned.md)
 ------
 ------
-[Getting Started](documentation/getting_started.md)
--------
--------
+
 
 ## Questions/Comments?
 Please post on [this forum message](https://endless-sphere.com/forums/viewtopic.php?f=28&t=106346).

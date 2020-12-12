@@ -51,7 +51,7 @@
 #include "nrf_sdh_soc.h"
 #include "nrf_power.h"
 #include "nrf_bootloader_info.h"
-#include "custom_board.h"
+//#include "custom_board.h"
 #include "boards.h"
 #include "nrf_gpio.h"
 #include "bsp.h"
