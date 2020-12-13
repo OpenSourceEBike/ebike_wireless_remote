@@ -50,7 +50,7 @@
                 
                 {
                     "description": "Flash firmware",
-                    "text": "monitor flash write_image erase ${workspaceFolder}/_build/TSDZ2_wireless_remote_combined.hex"
+                    "text": "monitor program ${workspaceFolder}/_build/TSDZ2_wireless_remote_combined.hex verify"
                 },
                 {
                     "description": "Start debug",
