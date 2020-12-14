@@ -418,23 +418,30 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
+  //check for DFU pins
+  if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
+  {
+    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+    nrf_delay_ms(1000);
+    sd_nvic_SystemReset(); //reset and start again
+  }
 
-  if (nrf_gpio_pin_read(PLUS__PIN) == 0)
-  {
-    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-    turn_bluetooth_on = true;
-  }
-  if (nrf_gpio_pin_read(MINUS__PIN) == 0)
-  {
-    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-    turn_bluetooth_off = true;
-  }
-  if (nrf_gpio_pin_read(ENTER__PIN) == 0)
-  {
-    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
-    APP_ERROR_CHECK(err_code);
-  }
-  m_button_long_press = true;
+if (nrf_gpio_pin_read(PLUS__PIN) == 0)
+{
+  // set flag to enable bluetooth on restart -needed becaause of interrupt priority
+  turn_bluetooth_on = true;
+}
+if (nrf_gpio_pin_read(MINUS__PIN) == 0)
+{
+  // set flag to enable bluetooth on restart -needed becaause of interrupt priority
+  turn_bluetooth_off = true;
+}
+if (nrf_gpio_pin_read(ENTER__PIN) == 0)
+{
+  err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
+  APP_ERROR_CHECK(err_code);
+}
+m_button_long_press = true;
 }
 static void timer_button_config_press_timeout_handler(void *p_context)
 {
