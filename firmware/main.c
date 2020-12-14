@@ -418,6 +418,8 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
+  //flash red led
+  bsp_board_led_on(BSP_BOARD_LED_1);
   //check for DFU pins
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
@@ -442,6 +444,8 @@ if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   APP_ERROR_CHECK(err_code);
 }
 m_button_long_press = true;
+nrf_delay_ms(200);
+bsp_board_led_off(BSP_BOARD_LED_1);
 }
 static void timer_button_config_press_timeout_handler(void *p_context)
 {
