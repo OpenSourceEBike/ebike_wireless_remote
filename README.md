@@ -8,7 +8,7 @@ as well as a [bootloader to be used with both the remote control and the ebike w
 This project implements a wireless remote button for EBikes and/or GPS bike computers like the Garmin Edge. 
 You can  purchase on the market ebike remote controls. ie: the [Garmin EBike Remote for about 80€](https://buy.garmin.com/en-US/US/p/545795/pn/010-12094-30).
 
-However, our remote control is considerably less expensive and has additional features.
+However, our remote control is considerably less expensive and offers sevaral additional features for ebike control.
 
 ----
 [Getting Started](documentation/getting_started.md)
