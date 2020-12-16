@@ -419,7 +419,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
   //flash red led
-  bsp_board_led_on(BSP_BOARD_LED_1);
+  bsp_board_led_on(BSP_BOARD_LED_0);
   //check for DFU pins
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
@@ -428,54 +428,71 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     sd_nvic_SystemReset(); //reset and start again
   }
 
-if (nrf_gpio_pin_read(PLUS__PIN) == 0)
-{
-  // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-  turn_bluetooth_on = true;
+  if (nrf_gpio_pin_read(PLUS__PIN) == 0)
+  {
+    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
+    turn_bluetooth_on = true;
+  }
+  if (nrf_gpio_pin_read(MINUS__PIN) == 0)
+  {
+    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
+    turn_bluetooth_off = true;
+  }
+  if (nrf_gpio_pin_read(ENTER__PIN) == 0)
+  {
+    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
+    APP_ERROR_CHECK(err_code);
+  }
+  m_button_long_press = true;
+  nrf_delay_ms(200);
+  bsp_board_led_off(BSP_BOARD_LED_0);
 }
-if (nrf_gpio_pin_read(MINUS__PIN) == 0)
+void all_leds_off(void)
 {
-  // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-  turn_bluetooth_off = true;
-}
-if (nrf_gpio_pin_read(ENTER__PIN) == 0)
-{
-  err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
-  APP_ERROR_CHECK(err_code);
-}
-m_button_long_press = true;
-nrf_delay_ms(200);
-bsp_board_led_off(BSP_BOARD_LED_1);
-}
-static void timer_button_config_press_timeout_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
   //display configuration using board LEDs
   bsp_board_led_off(BSP_BOARD_LED_0);
   bsp_board_led_off(BSP_BOARD_LED_1);
   bsp_board_led_off(BSP_BOARD_LED_2);
+  bsp_board_led_off(BSP_BOARD_LED_3);
+}
+static void timer_button_config_press_timeout_handler(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+  //led definitions for the nordic dongle
+  uint8_t LED1=1;
+  uint8_t LED2=2;
+  uint8_t LED3=3;
+  //led definition for the MDK dongle
+  #ifdef NRF52840_MDK_USB_DONGLE_H
+  LED1=0;
+  LED2=1;
+  LED3=2;
+   #endif
+  all_leds_off();
   //led 0 (green) ANT LEV active
+  
+
   if (ebike)
   {
-    bsp_board_led_on(BSP_BOARD_LED_0);
+    bsp_board_led_on(LED1);
     nrf_delay_ms(500);
-    bsp_board_led_off(BSP_BOARD_LED_0);
+    bsp_board_led_off(LED1);
   }
 
   //led 1 (red) ANT CONTROLS active
   if (garmin)
   {
-    bsp_board_led_on(BSP_BOARD_LED_1);
+    bsp_board_led_on(LED2);
     nrf_delay_ms(500);
-    bsp_board_led_off(BSP_BOARD_LED_1);
+    bsp_board_led_off(LED2);
   }
 
   //led 2 (blue) brake control active
   if (brake)
   {
-    bsp_board_led_on(BSP_BOARD_LED_2);
+    bsp_board_led_on(LED3);
     nrf_delay_ms(500);
-    bsp_board_led_off(BSP_BOARD_LED_2);
+    bsp_board_led_off(LED3);
   }
 }
 
@@ -525,9 +542,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timerf
     APP_ERROR_CHECK(err_code);
     //turn off the leds
-    bsp_board_led_off(BSP_BOARD_LED_0);
-    bsp_board_led_off(BSP_BOARD_LED_1);
-    bsp_board_led_off(BSP_BOARD_LED_2);
+    all_leds_off();
     break;
   }
   case APP_BUTTON_PUSH: //button pushed
@@ -1085,7 +1100,7 @@ static void leds_init(void)
 int main(void)
 {
   ret_code_t err_code;
-
+  all_leds_off();
   lfclk_config();
   leds_init();
   init_app_timers();
