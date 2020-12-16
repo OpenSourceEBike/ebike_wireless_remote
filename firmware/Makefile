@@ -204,7 +204,6 @@ INC_FOLDERS += \
 	$(SDK_ROOT)/components/ble/ble_advertising \
   $(SDK_ROOT)/components/ant/ant_state_indicator \
   $(SDK_ROOT)/components/ant/ant_key_manager \
-  $(SDK_ROOT)/components/ant/ant_key_manager/config \
   $(SDK_ROOT)/components/ant/ant_channel_config \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/ant_request_controller \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages \
@@ -230,8 +229,8 @@ OPT = -O0 -g3
 CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
-#CFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
-CFLAGS += -DBOARD_PCA10059
+CFLAGS += -DBOARD_CUSTOM -DNRF52840_MDK_USB_DONGLE
+#CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
 CFLAGS += -DNRF_SD_BLE_API_VERSION=6
