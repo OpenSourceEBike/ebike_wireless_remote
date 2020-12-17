@@ -401,6 +401,8 @@ void wait_and_reset(void)
 {
 #define WAIT_TIME 1000 // wait 1 seconds before a reset
 
+while (1) ;
+
   nrf_delay_ms(WAIT_TIME);
   sd_nvic_SystemReset(); // reset and start again
 }
@@ -454,7 +456,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   
   m_button_long_press = true;
   nrf_delay_ms(200);
-  bsp_board_led_off(BSP_BOARD_LED_1);
+  nrf_gpio_pin_clear(LED_R__PIN);
 }
 
 static void timer_button_config_press_timeout_handler(void *p_context)
@@ -534,9 +536,9 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
       APP_ERROR_CHECK(err_code);
 
       //turn off the leds
-      bsp_board_led_off(BSP_BOARD_LED_0);
-      bsp_board_led_off(BSP_BOARD_LED_1);
-      bsp_board_led_off(BSP_BOARD_LED_2);
+      nrf_gpio_pin_clear(LED_R__PIN);
+      nrf_gpio_pin_clear(LED_G__PIN);
+      nrf_gpio_pin_clear(LED_B__PIN);
       break;
 
     case APP_BUTTON_PUSH: //button pushed
@@ -1127,7 +1129,12 @@ int main(void)
   // idle loop
   while (true)
   {
-    nrf_pwr_mgmt_run(); // idle
+    // nrf_pwr_mgmt_run(); // idle
+
+    __WFE();
+    __SEV();
+    __WFE();
+
     check_interrupt_flags();
   }
 }
