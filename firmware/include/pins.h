@@ -8,37 +8,47 @@
 
 #ifndef PINS_H_
 #define PINS_H_
-
+#include "boards.h"
 #include <stdio.h>
 #include <stdbool.h>
 
-// NRF52840 MDK Dongle
 #if defined(BOARD_CUSTOM) && defined(NRF52840_MDK_USB_DONGLE)
-                       
+// NRF52840 MakerDiary Dongle
+
 typedef enum {
     PLUS__PIN  = 5,
     MINUS__PIN  = 6,
     ENTER__PIN = 7,
     STANDBY__PIN = 8,
-    BOOTLOADER__PIN= 18,
-    BUTTON_PIN_ELEMENTS = 5 // must be updated when added or removed an element
+    BUTTON_PIN_ELEMENTS = 4 // must be updated when added or removed an element
 } button_pins_t;
-#endif
+
+typedef enum {
+    LED_G__PIN  = 0,
+    LED_R__PIN  = 1,
+    LED_B__PIN  = 2,
+} LED_pins_t;
+
+#elif (BOARD_PCA10059)
+
 // NRF52840 NORDIC Dongle
-#if defined(BOARD_PCA10059)
-                       
+
 typedef enum {
     PLUS__PIN  = 13,
     MINUS__PIN  = 15,
     ENTER__PIN = 17,
     STANDBY__PIN = 20,
-    BOOTLOADER__PIN= 19,
-    BUTTON_PIN_ELEMENTS = 5 // must be updated when added or removed an element
+    BUTTON_PIN_ELEMENTS = 4 // must be updated when added or removed an element
 } button_pins_t;
+
+typedef enum {
+    LED_R__PIN  = 1,
+    LED_G__PIN  = 2,
+    LED_B__PIN  = 3,
+    LED_PWR__PIN = 0,
+} LED_pins_t;
+
 #endif
-
-// NRF52840 Dongle (The Blue One)
-
 
 void pins_init(void);
 bool button_plus_is_set(void);
