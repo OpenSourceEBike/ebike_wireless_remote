@@ -51,8 +51,6 @@
 #include "nrf_sdh_soc.h"
 #include "nrf_power.h"
 #include "nrf_bootloader_info.h"
-//#include "custom_board.h"
-#include "boards.h"
 #include "nrf_gpio.h"
 #include "bsp.h"
 #include "nrf_log.h"
@@ -88,9 +86,9 @@
 #define SEC_PARAM_MAX_KEY_SIZE 16                      /**< Maximum encryption key size. */
 
 #define APP_FEATURE_NOT_SUPPORTED BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2 /**< Reply when unsupported features are requested. */
-u_int8_t ebike = 1;                                                    //ebike control as default                                                //ANT LEV ebike as a default
-u_int8_t garmin = 0;                                                   //no garmin computer as a default
-u_int8_t brake = 0;                                                    //no brake control as default
+uint8_t ebike = 1;                                                     //ebike control as default                                                //ANT LEV ebike as a default
+uint8_t garmin = 0;                                                    //no garmin computer as a default
+uint8_t brake = 0;                                                     //no brake control as default
 NRF_BLE_GATT_DEF(m_gatt);                                              /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                    /**< Advertising module instance. */
@@ -100,9 +98,9 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the curr
 //static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
 //static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
 //static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded scan data. */
-bool turn_bluetooth_on = false; //needs to be a flag to manage flash write events
-bool turn_bluetooth_off = false;
-uint8_t old_ant_device_id = 0; //initially in pairing mode
+bool m_turn_bluetooth_on = false; //needs to be a flag to manage flash write events
+bool m_turn_bluetooth_off = false;
+uint8_t old_ant_device_id = 0; // initially in pairing mode
 uint8_t new_ant_device_id = 0; // used to check for change of ant id
 
 /**@brief Struct that contains pointers to the encoded advertising data. */
@@ -399,11 +397,18 @@ void ant_lev_evt_handler(ant_lev_profile_t *p_profile, ant_lev_evt_t event)
   }
 }
 
+void wait_and_reset(void)
+{
+#define WAIT_TIME 1000 // wait 1 seconds before a reset
+
+  nrf_delay_ms(WAIT_TIME);
+  sd_nvic_SystemReset(); // reset and start again
+}
+
 static void bluetooth_timer_timeout(void *p_context)
 {
-
   UNUSED_PARAMETER(p_context);
-  turn_bluetooth_off = true; //set the flag for the idle loop
+  m_turn_bluetooth_off = true; // set the flag for the idle loop
 }
 
 static void timer_button_press_timeout_handler(void *p_context)
@@ -418,96 +423,85 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
-  //flash red led
-  bsp_board_led_on(BSP_BOARD_LED_0);
-  //check for DFU pins
+
+  // check for enter bootloader buttons
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
+
   {
+    bsp_board_led_on(LED_R__PIN);
     nrf_power_gpregret_set(BOOTLOADER_DFU_START);
-    nrf_delay_ms(1000);
-    sd_nvic_SystemReset(); //reset and start again
+    wait_and_reset();
   }
 
-  if (nrf_gpio_pin_read(PLUS__PIN) == 0)
+  if ((nrf_gpio_pin_read(PLUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
+
   {
-    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-    turn_bluetooth_on = true;
+    bsp_board_led_on(LED_R__PIN);
+    // set flag to enable bluetooth on restart - needed because of interrupt priority
+    m_turn_bluetooth_on = true;
   }
-  if (nrf_gpio_pin_read(MINUS__PIN) == 0)
+
+  if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
-    // set flag to enable bluetooth on restart -needed becaause of interrupt priority
-    turn_bluetooth_off = true;
+    bsp_board_led_on(LED_R__PIN);
+    // set flag to enable bluetooth on restart - needed because of interrupt priority
+    m_turn_bluetooth_off = true;
   }
+
   if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   {
-    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timerf
+    bsp_board_led_on(LED_R__PIN);
+    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timer
     APP_ERROR_CHECK(err_code);
   }
+
   m_button_long_press = true;
   nrf_delay_ms(200);
-  bsp_board_led_off(BSP_BOARD_LED_0);
+  bsp_board_led_off(LED_R__PIN); //turn off red led
 }
-void all_leds_off(void)
-{
-  //display configuration using board LEDs
-  bsp_board_led_off(BSP_BOARD_LED_0);
-  bsp_board_led_off(BSP_BOARD_LED_1);
-  bsp_board_led_off(BSP_BOARD_LED_2);
-  bsp_board_led_off(BSP_BOARD_LED_3);
-}
+
 static void timer_button_config_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
-  //led definitions for the nordic dongle
-  uint8_t LED1=1;
-  uint8_t LED2=2;
-  uint8_t LED3=3;
-  //led definition for the MDK dongle
-  #ifdef NRF52840_MDK_USB_DONGLE_H
-  LED1=0;
-  LED2=1;
-  LED3=2;
-   #endif
-  all_leds_off();
+
+  //display configuration using board LEDs
+  bsp_board_led_off(LED_R__PIN);
+  bsp_board_led_off(LED_G__PIN);
+  bsp_board_led_off(LED_B__PIN);
+
   //led 0 (green) ANT LEV active
-  
 
   if (ebike)
   {
-    bsp_board_led_on(LED1);
+    bsp_board_led_on(LED_R__PIN);
     nrf_delay_ms(500);
-    bsp_board_led_off(LED1);
+    bsp_board_led_off(LED_R__PIN);
   }
 
-  //led 1 (red) ANT CONTROLS active
   if (garmin)
   {
-    bsp_board_led_on(LED2);
+    bsp_board_led_on(LED_G__PIN);
     nrf_delay_ms(500);
-    bsp_board_led_off(LED2);
+    bsp_board_led_off(LED_G__PIN);
   }
 
   //led 2 (blue) brake control active
   if (brake)
   {
-    bsp_board_led_on(LED3);
+    bsp_board_led_on(LED_B__PIN);
     nrf_delay_ms(500);
-    bsp_board_led_off(LED3);
+    bsp_board_led_off(LED_B__PIN);
   }
 }
 
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
-
   button_pins_t button_pin = (button_pins_t)pin_no;
   ret_code_t err_code;
 
   switch (button_action)
   {
-
-  case APP_BUTTON_RELEASE: //process the button actions
-  {                        // button released
-
+  case APP_BUTTON_RELEASE: //process the button actions                   // button released
     if (button_pin == MINUS__PIN)
     //motor assist increase
     {
@@ -537,29 +531,28 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
+    err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timerf
+    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
+
     //turn off the leds
-    all_leds_off();
+    bsp_board_led_off(LED_R__PIN);
+    bsp_board_led_off(LED_G__PIN);
+    bsp_board_led_off(LED_B__PIN);
     break;
-  }
-  case APP_BUTTON_PUSH: //button pushed
-  {
 
-    err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timerf
+  case APP_BUTTON_PUSH:                                           //button pushed
+    err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timerf
+    err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timer
     APP_ERROR_CHECK(err_code);
     m_button_long_press = false;
-    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timerf
+    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
 
     m_button_long_press = false;
-
     break;
-  }
   }
 }
 
@@ -567,14 +560,13 @@ void buttons_init(void)
 {
   ret_code_t err_code;
 
-  //The array must be static because a pointer to it will be saved in the button handler module.
-  static app_button_cfg_t buttons[5] =
+  // the array must be static because a pointer to it will be saved in the button handler module
+  static app_button_cfg_t buttons[4] =
       {
           {(uint8_t)PLUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
           {(uint8_t)MINUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
           {(uint8_t)ENTER__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)BUTTON_1, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
+          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
 
   err_code = app_button_init(buttons, ARRAY_SIZE(buttons), BUTTON_DETECTION_DELAY);
   // this will enable wakeup from ultra low power mode (any button press)
@@ -582,7 +574,6 @@ void buttons_init(void)
   nrf_gpio_cfg_sense_input(MINUS__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(ENTER__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(STANDBY__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
-  nrf_gpio_cfg_sense_input(BOOTLOADER__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
 
   if (err_code == NRF_SUCCESS)
   {
@@ -653,6 +644,7 @@ static void profile_setup(void)
   //retrieve the old ant id from a power cycle
 
   m_ant_lev_channel_lev_disp_config.device_number = old_ant_device_id;
+
   if (ebike)
   {
     err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
@@ -660,6 +652,7 @@ static void profile_setup(void)
     err_code = ant_lev_disp_open(&m_ant_lev);
     APP_ERROR_CHECK(err_code);
   }
+
   if (garmin)
   {
     err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
@@ -1014,6 +1007,7 @@ void ble_init(void)
   peer_manager_init();
   advertising_start(true);
 }
+
 void check_interrupt_flags(void)
 {
   //need flags to handle interrupt events for flash write
@@ -1036,43 +1030,52 @@ void check_interrupt_flags(void)
     case 0x90: //ANT LEV on
       ebike = 1;
       break;
+
     case 0x91: //ANT LEV off
       ebike = 0;
       break;
+
     case 0x92: //ANT CONTROL on
       garmin = 1;
       break;
+
     case 0x93: //ANT CONTROL off
       garmin = 0;
       break;
     case 0x94: //brake control on
       brake = 1;
       break;
+
     case 0x95: //brake control off
       brake = 0;
       break;
-    case 0x99: //DFU mode
+
+    case 0x99: // start booltoader
       nrf_power_gpregret_set(BOOTLOADER_DFU_START);
-      nrf_delay_ms(1000);
-      sd_nvic_SystemReset(); //reset and start again
+      wait_and_reset();
       break;
+
     default: //ant ID change requested
       old_ant_device_id = new_ant_device_id;
     }
 
     // save changes and disable BLUETOOTH on restart
     eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake);
+    wait_and_reset();
   }
 
-  //now check for bluetooth flag on plus button press
-  if (turn_bluetooth_on)
+  // now check for bluetooth flag on plus button press
+  if (m_turn_bluetooth_on)
   {
     eeprom_write_variables(old_ant_device_id, 1, ebike, garmin, brake); // Enable BLUETOOTH on restart}
+    wait_and_reset();
   }
-  //finally check bluetooth timeout flag and minus button press
-  if (turn_bluetooth_off)
+
+  // finally check bluetooth timeout flag and minus button press
+  if (m_turn_bluetooth_off)
   {
     eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake); // Disable BLUETOOTH on restart}
+    wait_and_reset();
   }
 }
 static void init_app_timers(void)
@@ -1080,27 +1083,33 @@ static void init_app_timers(void)
   ret_code_t err_code;
   err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
+
   err_code = app_timer_create(&bluetooth_timer, APP_TIMER_MODE_SINGLE_SHOT, bluetooth_timer_timeout);
   APP_ERROR_CHECK(err_code);
 
   err_code = app_timer_stop(bluetooth_timer);
   APP_ERROR_CHECK(err_code);
 }
+
 static void leds_init(void)
 {
-  ret_code_t ret_val;
+ ret_code_t ret_val;
   if (LEDS_NUMBER > 0)
   {
 
     bsp_board_init(BSP_INIT_LEDS);
     ret_val = bsp_init(BSP_INIT_LEDS, NULL);
     APP_ERROR_CHECK(ret_val);
+    //turn off the pwr led FOR THE NORDIC DONGLE
+    #if defined(BOARD_PCA_10059)
+    bsp_board_led_off(LED_PWR__PIN);
+    #endif
   }
 }
+
 int main(void)
 {
   ret_code_t err_code;
-  all_leds_off();
   lfclk_config();
   leds_init();
   init_app_timers();
@@ -1118,13 +1127,18 @@ int main(void)
     ble_init();
   }
 
-  profile_setup(); //set up the ANT profiles
+  // set up the ANT profiles
+  profile_setup();
 
-  //idle loop
+  // idle loop
   while (true)
   {
+    // nrf_pwr_mgmt_run(); // idle
 
-    nrf_pwr_mgmt_run(); //idle
+    __WFE();
+    __SEV();
+    __WFE();
+
     check_interrupt_flags();
   }
 }
