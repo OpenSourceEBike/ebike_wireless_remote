@@ -507,17 +507,20 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     if (button_pin == MINUS__PIN)
     //motor assist increase
     {
-      buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
+      if (ebike)
+        buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
     else if (button_pin == PLUS__PIN)
     //motor assist decrease
     {
-      buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
+      if (ebike)
+        buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
     else if ((button_pin == ENTER__PIN) && (!m_button_long_press))
     //pageup on bike computer
     {
-      buttons_send_pag73(&m_antplus_controls, button_pin);
+      if (garmin)
+        buttons_send_pag73(&m_antplus_controls, button_pin);
     }
     else if (button_pin == STANDBY__PIN)
     {
@@ -1135,9 +1138,9 @@ int main(void)
   uint8_t enable_bluetooth = 0;
   //lfclk_config();
   softdevice_setup();
- sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
- sd_power_mode_set(NRF_POWER_MODE_LOWPWR );
- //sd_power_mode_set(NRF_POWER_MODE_CONSTLAT );
+  sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
+  sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
+
   leds_init();
 
   init_app_timers();
