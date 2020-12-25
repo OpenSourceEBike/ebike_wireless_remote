@@ -88,15 +88,15 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
         }
         else if (button == ENTER__PIN)
         {
-            p_profile->page_16.wheel_circumference -= 10; //1818 circum
+           // p_profile->page_16.wheel_circumference -= 10; //1818 circum
 
-            send_page = true;
+           // send_page = true;
         }
         else if (button == STANDBY__PIN)
         {
-            p_profile->page_16.manufacturer_id += 1;
+            // p_profile->page_16.manufacturer_id += 1;
 
-            send_page = true;
+            //send_page = true;
         }
     }
     else //long press actions
@@ -116,19 +116,20 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
 
             send_page = true;
         }
-        */
+        
         if (button == ENTER__PIN)
         {
-            p_profile->page_16.wheel_circumference += 10; //1818 circum
+           p_profile->page_16.wheel_circumference += 10; //1818 circum
 
             send_page = true;
         }
         else if (button == STANDBY__PIN)
         {
-            p_profile->page_16.manufacturer_id -= 1;
+           p_profile->page_16.manufacturer_id -= 1;
 
             send_page = true;
         }
+        */
     }
     // send_page = true;
     if (send_page)

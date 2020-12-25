@@ -29,7 +29,7 @@ typedef enum {
     LED_B__PIN  = 2,
 } LED_pins_t;
 
-#elif (BOARD_PCA10059)
+#elif defined(BOARD_PCA10059)
 
 // NRF52840 NORDIC Dongle
 

@@ -1256,7 +1256,7 @@
 // <4294967295=> Not connected 
 
 #ifndef NRF_PWR_MGMT_SLEEP_DEBUG_PIN
-#define NRF_PWR_MGMT_SLEEP_DEBUG_PIN 31
+#define NRF_PWR_MGMT_SLEEP_DEBUG_PIN 6
 #endif
 
 // </e>
@@ -1431,7 +1431,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logger
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 1
+#define NRF_LOG_ENABLED 0
 #endif
 // <h> Log message pool - Configuration of log message pool
 

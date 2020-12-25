@@ -59,7 +59,7 @@
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-#define BUTTON_CONFIG_PRESS_TIMEOUT APP_TIMER_TICKS(2000)    //1 second cycle to display configuration
+#define BUTTON_CONFIG_PRESS_TIMEOUT APP_TIMER_TICKS(2000)    //2 second cycle to display configuration
 #define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
@@ -127,7 +127,6 @@ static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. *
 
 //uint32_t err_code=0;
 volatile uint32_t main_ticks;
-uint8_t enable_bluetooth = 0;
 
 static void delete_bonds(void)
 {
@@ -416,6 +415,7 @@ static void timer_button_press_timeout_handler(void *p_context)
   UNUSED_PARAMETER(p_context);
 
   // enter ultra low power mode
+
   shutdown();
 }
 
@@ -423,12 +423,12 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
-
+  bsp_board_led_on(LED_R__PIN);
   // check for enter bootloader buttons
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-    bsp_board_led_on(LED_R__PIN);
+
     nrf_power_gpregret_set(BOOTLOADER_DFU_START);
     wait_and_reset();
   }
@@ -436,26 +436,29 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   if ((nrf_gpio_pin_read(PLUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-    bsp_board_led_on(LED_R__PIN);
+
     // set flag to enable bluetooth on restart - needed because of interrupt priority
     m_turn_bluetooth_on = true;
   }
 
   if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
-    bsp_board_led_on(LED_R__PIN);
+
     // set flag to enable bluetooth on restart - needed because of interrupt priority
     m_turn_bluetooth_off = true;
   }
 
   if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   {
-    bsp_board_led_on(LED_R__PIN);
+
     err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timer
     APP_ERROR_CHECK(err_code);
   }
 
-  m_button_long_press = true;
+  //stop the long press timer
+  err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
+  APP_ERROR_CHECK(err_code);
+  m_button_long_press = true; //needed for app_release long press actions
   nrf_delay_ms(200);
   bsp_board_led_off(LED_R__PIN); //turn off red led
 }
@@ -498,31 +501,33 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
   button_pins_t button_pin = (button_pins_t)pin_no;
   ret_code_t err_code;
-
   switch (button_action)
   {
-  case APP_BUTTON_RELEASE: //process the button actions                   // button released
+  case APP_BUTTON_RELEASE: //process the button actions
     if (button_pin == MINUS__PIN)
     //motor assist increase
     {
       buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
-      m_button_long_press = false;
     }
     else if (button_pin == PLUS__PIN)
     //motor assist decrease
     {
       buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
-    else if (button_pin == ENTER__PIN)
+    else if ((button_pin == ENTER__PIN) && (!m_button_long_press))
     //pageup on bike computer
     {
       buttons_send_pag73(&m_antplus_controls, button_pin);
     }
     else if (button_pin == STANDBY__PIN)
-    //unassigned
     {
-      //turn off the motor power
-      // buttons_send_pag73(&m_antplus_controls, button_pin);
+      //turn off the lights (short press ) or turn on/off the power (long press)
+      //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
+      //the shutdown command is also needed here as the button release will wake up the board
+      //go to power off mode
+      if (m_button_long_press)
+
+        shutdown();
     }
     m_button_long_press = false; //reset the long press timer
 
@@ -540,14 +545,16 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     bsp_board_led_off(LED_R__PIN);
     bsp_board_led_off(LED_G__PIN);
     bsp_board_led_off(LED_B__PIN);
+
     break;
 
   case APP_BUTTON_PUSH:                                           //button pushed
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
+
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timer
     APP_ERROR_CHECK(err_code);
-    m_button_long_press = false;
+
     err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
 
@@ -584,6 +591,7 @@ void buttons_init(void)
   err_code = app_timer_create(&m_timer_button_press_timeout,
                               APP_TIMER_MODE_SINGLE_SHOT,
                               timer_button_press_timeout_handler);
+
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_create(&m_timer_button_long_press_timeout,
                               APP_TIMER_MODE_SINGLE_SHOT,
@@ -608,9 +616,15 @@ void shutdown(void)
   // // all pins must be disabled or system will wakeup, similar to a reset after enter ultra low power mode
   // // debug pins
   // nrf_gpio_cfg_default(10);
-  // nrf_gpio_cfg_default(9);
+  //  nrf_gpio_cfg_default(9);
 
   // enter in ultra low power mode
+  bsp_board_led_off(LED_PWR__PIN);
+  bsp_board_led_off(LED_R__PIN);
+  bsp_board_led_off(LED_G__PIN);
+  bsp_board_led_off(LED_B__PIN);
+  // sd_power_system_off();
+
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
 
@@ -1093,30 +1107,43 @@ static void init_app_timers(void)
 
 static void leds_init(void)
 {
- ret_code_t ret_val;
+  ret_code_t ret_val;
   if (LEDS_NUMBER > 0)
   {
 
     bsp_board_init(BSP_INIT_LEDS);
     ret_val = bsp_init(BSP_INIT_LEDS, NULL);
     APP_ERROR_CHECK(ret_val);
-    //turn off the pwr led FOR THE NORDIC DONGLE
-    #if defined(BOARD_PCA_10059)
+//turn off the pwr led FOR THE NORDIC DONGLE
+#if defined(BOARD_PCA10059)
     bsp_board_led_off(LED_PWR__PIN);
-    #endif
+    //note NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED to flash this LED when cpu active
+#endif
   }
 }
-
+void power_mgt_init(void)
+{
+  ret_code_t err_code;
+  err_code = nrf_pwr_mgmt_init();
+  APP_ERROR_CHECK(err_code);
+  //set up the pwr configuration
+  sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
+}
 int main(void)
 {
   ret_code_t err_code;
-  lfclk_config();
-  leds_init();
-  init_app_timers();
-  err_code = nrf_pwr_mgmt_init();
-  APP_ERROR_CHECK(err_code);
-  buttons_init();
+  uint8_t enable_bluetooth = 0;
+  //lfclk_config();
   softdevice_setup();
+ sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
+ sd_power_mode_set(NRF_POWER_MODE_LOWPWR );
+ //sd_power_mode_set(NRF_POWER_MODE_CONSTLAT );
+  leds_init();
+
+  init_app_timers();
+
+  buttons_init();
+
   //read the flash memory and setup the ANT ID and Bluetooth flag
   eeprom_init(&old_ant_device_id, &enable_bluetooth, &ebike, &garmin, &brake);
   new_ant_device_id = old_ant_device_id; //no change at this time.
@@ -1124,21 +1151,16 @@ int main(void)
   if (enable_bluetooth)
   { //start the bluetooth 5 min timer
     err_code = app_timer_start(bluetooth_timer, BLUETOOTH_TIMEOUT, NULL);
+    APP_ERROR_CHECK(err_code);
     ble_init();
   }
-
   // set up the ANT profiles
   profile_setup();
-
+  //power_mgt_init();
   // idle loop
   while (true)
   {
-    // nrf_pwr_mgmt_run(); // idle
-
-    __WFE();
-    __SEV();
-    __WFE();
-
+    sd_app_evt_wait(); //sleep in power on mode
     check_interrupt_flags();
   }
 }
