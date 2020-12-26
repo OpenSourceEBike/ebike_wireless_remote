@@ -424,11 +424,17 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   UNUSED_PARAMETER(p_context);
   ret_code_t err_code;
   bsp_board_led_on(LED_R__PIN);
+  //pageup/pagedown
+  if ((nrf_gpio_pin_read(PLUS__PIN) == 0) && garmin)
+    buttons_send_pag73(&m_antplus_controls, ENTER__PIN, 0);
+
+  if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && garmin)
+    buttons_send_pag73(&m_antplus_controls, ENTER__PIN, 1);
+
   // check for enter bootloader buttons
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-
     nrf_power_gpregret_set(BOOTLOADER_DFU_START);
     wait_and_reset();
   }
@@ -436,21 +442,18 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   if ((nrf_gpio_pin_read(PLUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-
     // set flag to enable bluetooth on restart - needed because of interrupt priority
     m_turn_bluetooth_on = true;
   }
 
   if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
-
     // set flag to enable bluetooth on restart - needed because of interrupt priority
     m_turn_bluetooth_off = true;
   }
 
   if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   {
-
     err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timer
     APP_ERROR_CHECK(err_code);
   }
@@ -520,7 +523,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     //pageup on bike computer
     {
       if (garmin)
-        buttons_send_pag73(&m_antplus_controls, button_pin);
+        buttons_send_pag73(&m_antplus_controls, button_pin, 0);
     }
     else if (button_pin == STANDBY__PIN)
     {
@@ -1163,6 +1166,7 @@ int main(void)
   // idle loop
   while (true)
   {
+  
     sd_app_evt_wait(); //sleep in power on mode
     check_interrupt_flags();
   }

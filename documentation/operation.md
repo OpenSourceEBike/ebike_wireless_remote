@@ -1,16 +1,19 @@
 # Remote operation
 Short Press buttons
 ----
-* Short Press the [MENU] button to switch pages on an ANT+ CONTROLS device (ie: garmin bike computer)
+* Short Press the [ENTER] button to switch pages (pageup) on an ANT+ CONTROLS device (ie: garmin bike computer) 
+  (You can also use the long press of PLUS and MINUS to pageup/pagedown - see below)
 * Short press the [PLUS] button to increase the motor assist level (ANT+ LEV control)
 * Short press the [MINUS] button to decrease the motor assist level (ANT+ LEV control)
   
 Long Press Buttons
 -----
-* Long press the [ENTER] button to cycle through the configuration LED display.     [Configuration Options](configuration.md)
+* Long Press the [PLUS] button to pageup on a garmin bike computer
+* Long Press the [MINUS] button to pagedown on a garmin bike computer
+* Long press the [ENTER] button to cycle through the configuration LED display.     [See Configuration Options](configuration.md)
 * Long Press both the [ENTER] + [STANDBY] buttons at the same time to initate Device Firmware Update (DFU) mode. Either the remote or bootloader firmware can be updated to a new version using a porovided upgrade packet zip file in DFU mode. For more information click [here](dfu.md).
 * Long press the [PLUS] + [STANDBY] buttons to start bluetooth to allow the [Configuration Options](configuration.md)  to be set.
-* Long press the [Minus] + [STANDBY] buttons to stop bluetooth to save power. 
+* Long press the [MINUS] + [STANDBY] buttons to stop bluetooth to save power. 
 
 Bluetooth will also automatically turn off after:
     * 5 minutes if you left bluetooth running
