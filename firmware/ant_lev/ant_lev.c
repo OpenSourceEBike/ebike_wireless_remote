@@ -156,7 +156,7 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
         err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number, sizeof(p_message_payload), p_message_payload);
         if (err_code != 0)
         {
-            nrf_delay_ms(50);
+           // nrf_delay_ms(50);
         }
         (void)err_code; // ignore
         //nrf_delay_ms(50);
@@ -238,14 +238,19 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
                 err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
                                                          sizeof(p_message_payload),
                                                          p_message_payload);
+             APP_ERROR_CHECK(err_code);                                            
             }
-            else
+ /*           else
             {
-                err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
+               err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
                                                        sizeof(p_message_payload),
-                                                       p_message_payload);
-            }
-            APP_ERROR_CHECK(err_code);
+                                                       p_message_payload); 
+             APP_ERROR_CHECK(err_code);                                          
+                                                       
+                                                       
+                                                      
+            } */
+           
             break;
 
         case EVENT_RX:

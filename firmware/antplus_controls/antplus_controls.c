@@ -91,7 +91,7 @@ static bool message_encode(antplus_controls_profile_t * p_profile, uint8_t * p_m
      return false;
  }
 */
-void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button)
+void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t button, uint8_t pagectrl)
 {
   ASSERT(p_profile != NULL);
 
@@ -99,15 +99,11 @@ void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t but
 
   if (button == ENTER__PIN)
   {
-    p_profile->page_73.utf8_character = 0;
+    p_profile->page_73.utf8_character = pagectrl;
     send_page = true;
   }
-  else if (button == STANDBY__PIN)
-  {
-    p_profile->page_73.utf8_character = 1;
-    send_page = true;
-  }
-  //send_page=true;
+  
+
   if (send_page)
   {
     send_page = false;
@@ -134,6 +130,10 @@ void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t but
                                              p_message_payload);
     send_page = true;
     (void)err_code; // ignore
+    //the following code is needed to start a new ANT Rx search if the garmin is disconnected during use and restarted
+     err_code = antplus_controls_sens_open(p_profile); 
+  //  APP_ERROR_CHECK(err_code);
+
   }
 }
 
@@ -141,6 +141,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
 {
   ASSERT(p_context != NULL);
   ASSERT(p_ant_evt != NULL);
+  
 
   antplus_controls_profile_t *p_profile = (antplus_controls_profile_t *)p_context;
 
@@ -148,9 +149,12 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
   {
     switch (p_ant_evt->event)
     {
+      uint8_t err_code;
     case EVENT_TX:
     case EVENT_TRANSFER_TX_FAILED:
     case EVENT_TRANSFER_TX_COMPLETED:
+    
+     
       // nothing to do
       break;
 
@@ -160,37 +164,41 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
       break;
 
     case EVENT_RX:
+     
+      /*
       if (p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BROADCAST_DATA_ID || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BURST_DATA_ID)
       {
-        // uint32_t err_code;
-        // uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
-        // antplus_controls_sens_cb_t *p_CONTROLS_cb = p_profile->_cb.p_sens_cb;
+         
+         uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
+         antplus_controls_sens_cb_t *p_CONTROLS_cb = p_profile->_cb.p_sens_cb;
 
-        // bool buttons_page_sent = buttons_clock_pag73(p_profile);
+         bool buttons_page_sent = buttons_clock_pag73(p_profile);
+      
 
-        // only look to send for requested pages if no button pages sent
-        // if (buttons_page_sent == false) {
-        // ant_request_controller_sens_evt_handler(&(p_CONTROLS_cb->req_controller), p_ant_evt);
+       //only look to send for requested pages if no button pages sent
+       //  if (buttons_page_sent == false) {
+         ant_request_controller_sens_evt_handler(&(p_CONTROLS_cb->req_controller), p_ant_evt);
 
-        // bool page_encoded = message_encode(p_profile, p_message_payload);
-        // if (page_encoded)
-        // {
-        //   if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
-        //   {
-        //     err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
-        //                                             sizeof(p_message_payload),
-        //                                             p_message_payload);
-        //   }
-        //   else
-        //   {
-        //     err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
-        //                                           sizeof(p_message_payload),
-        //                                           p_message_payload);
-        //   }
-        //   APP_ERROR_CHECK(err_code);
-        // }
-        // }
+         bool page_encoded = message_encode(p_profile, p_message_payload);
+         if (page_encoded)
+         {
+           if (ant_request_controller_ack_needed(&(p_CONTROLS_cb->req_controller)))
+           {
+             err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
+                                                     sizeof(p_message_payload),
+                                                     p_message_payload);
+           }
+           else
+           {
+             err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
+                                                   sizeof(p_message_payload),
+                                                   p_message_payload);
+           }
+           APP_ERROR_CHECK(err_code);
+         }
+         }
       }
+      */
       break;
 
     default:
