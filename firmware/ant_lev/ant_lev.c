@@ -262,7 +262,7 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
         case EVENT_RX_SEARCH_TIMEOUT:
             // enter ultra low power mode
 
-            shutdown();
+            //shutdown();
             // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
             break;
         default:

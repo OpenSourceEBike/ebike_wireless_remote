@@ -56,6 +56,13 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+#include "low_power_pwm.h"
+#include "nordic_common.h"
+#include "led_softblink.h"
+
+uint8_t led_duty_cycle = 20;
+int8_t mask_number = 0;
+
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
@@ -116,6 +123,37 @@ static ble_gap_adv_data_t m_adv_data =
                 .p_data = m_enc_scan_response_data,
                 .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX}};
 */
+APP_TIMER_DEF(led_timer);
+void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, uint8_t duty_cycle_step, uint32_t led_on_ms)
+{
+  ret_code_t err_code;
+  NRF_GPIO_Type * port;
+   #define ON_TICKS APP_TIMER_TICKS(led_on_ms)
+   //fix for port number problem with green led
+   port=NRF_P0;
+  if (mask==BSP_LED_2_MASK)  port=NRF_P1;
+  
+#define LED_PWM_PARAMS(mask)                             \
+  {                                                      \
+    .active_high = false,                                \
+    .duty_cycle_max = duty_cycle_max,                    \
+    .duty_cycle_min = duty_cycle_min,                    \
+    .duty_cycle_step = duty_cycle_step,                  \
+    .off_time_ticks = 65536,                             \
+    .on_time_ticks = 0,                                  \
+    .leds_pin_bm = LED_SB_INIT_PARAMS_LEDS_PIN_BM(mask), \
+    .p_leds_port = port          \
+  }
+  const led_sb_init_params_t led_pwm_init_param = LED_PWM_PARAMS(mask);
+
+  err_code = led_softblink_init(&led_pwm_init_param);
+  APP_ERROR_CHECK(err_code);
+  err_code = app_timer_start(led_timer, ON_TICKS, NULL);
+  APP_ERROR_CHECK(err_code);
+  err_code = led_softblink_start(mask);
+  APP_ERROR_CHECK(err_code);
+}
+
 static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. */
     {
         {BLE_UUID_HEALTH_THERMOMETER_SERVICE, BLE_UUID_TYPE_BLE},
@@ -403,7 +441,13 @@ void wait_and_reset(void)
   nrf_delay_ms(WAIT_TIME);
   sd_nvic_SystemReset(); // reset and start again
 }
-
+static void led_timer_timeout(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+  ret_code_t err_code;
+  err_code = led_softblink_uninit();
+  APP_ERROR_CHECK(err_code);
+}
 static void bluetooth_timer_timeout(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -527,6 +571,42 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     }
     else if (button_pin == STANDBY__PIN)
     {
+      uint32_t led_mask;
+      if (led_duty_cycle > 1)
+      {
+
+        switch (mask_number)
+        {
+        case (0):
+          led_mask = BSP_LED_0_MASK;
+          break;
+        case (1):
+          led_mask = BSP_LED_1_MASK;
+          break;
+        case (2):
+          led_mask = BSP_LED_2_MASK;
+          break;
+        case (3):
+          led_mask = BSP_LED_3_MASK;
+          break;
+        }
+        if (led_duty_cycle==20)
+        {
+          led_pwm_on(led_mask, 255, 254 - 1, 1, 1000);
+        }
+        else
+        led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 200);
+      
+        led_duty_cycle -= 1;
+      }
+      else
+      {
+        if (mask_number == 3)
+          mask_number = -1;
+        mask_number += 1;
+        led_duty_cycle = 20;
+      }
+
       //turn off the lights (short press ) or turn on/off the power (long press)
       //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
       //the shutdown command is also needed here as the button release will wake up the board
@@ -548,9 +628,9 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
 
     //turn off the leds
-    bsp_board_led_off(LED_R__PIN);
-    bsp_board_led_off(LED_G__PIN);
-    bsp_board_led_off(LED_B__PIN);
+    //bsp_board_led_off(LED_R__PIN);
+    //bsp_board_led_off(LED_G__PIN);
+    // bsp_board_led_off(LED_B__PIN);
 
     break;
 
@@ -695,7 +775,7 @@ static void softdevice_setup(void)
   err_code = ant_plus_key_set(ANTPLUS_NETWORK_NUM);
   APP_ERROR_CHECK(err_code);
 }
-
+/*
 static void lfclk_config(void)
 {
   ret_code_t err_code = nrf_drv_clock_init();
@@ -703,6 +783,7 @@ static void lfclk_config(void)
 
   nrf_drv_clock_lfclk_request(NULL);
 }
+*/
 /*
 static void timer_init(void)
 {
@@ -1109,6 +1190,9 @@ static void init_app_timers(void)
 
   err_code = app_timer_stop(bluetooth_timer);
   APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_create(&led_timer, APP_TIMER_MODE_SINGLE_SHOT, led_timer_timeout);
+  APP_ERROR_CHECK(err_code);
 }
 
 static void leds_init(void)
@@ -1135,6 +1219,7 @@ void power_mgt_init(void)
   //set up the pwr configuration
   sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
 }
+
 int main(void)
 {
   ret_code_t err_code;
@@ -1163,10 +1248,11 @@ int main(void)
   // set up the ANT profiles
   profile_setup();
   //power_mgt_init();
+
   // idle loop
   while (true)
   {
-  
+
     sd_app_evt_wait(); //sleep in power on mode
     check_interrupt_flags();
   }

@@ -149,7 +149,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
   {
     switch (p_ant_evt->event)
     {
-      uint8_t err_code;
+      
     case EVENT_TX:
     case EVENT_TRANSFER_TX_FAILED:
     case EVENT_TRANSFER_TX_COMPLETED:
