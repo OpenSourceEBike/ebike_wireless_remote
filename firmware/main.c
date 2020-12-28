@@ -60,14 +60,19 @@
 #include "nordic_common.h"
 #include "led_softblink.h"
 
-uint8_t led_duty_cycle = 20;
+uint8_t led_duty_cycle = 110;
+//mask_number used for pwm debugging
 int8_t mask_number = 0;
+#define P_LED BSP_LED_0_MASK //green (pwr)
+#define R_LED BSP_LED_1_MASK //red
+#define G_LED BSP_LED_2_MASK //green
+#define B_LED BSP_LED_3_MASK //blue
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-#define BUTTON_CONFIG_PRESS_TIMEOUT APP_TIMER_TICKS(2000)    //2 second cycle to display configuration
-#define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
+
+#define DEVICE_NAME "TSDZ2_remote" /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -127,29 +132,33 @@ APP_TIMER_DEF(led_timer);
 void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, uint8_t duty_cycle_step, uint32_t led_on_ms)
 {
   ret_code_t err_code;
-  NRF_GPIO_Type * port;
-   #define ON_TICKS APP_TIMER_TICKS(led_on_ms)
-   //fix for port number problem with green led
-   port=NRF_P0;
-  if (mask==BSP_LED_2_MASK)  port=NRF_P1;
-  
+  NRF_GPIO_Type *port;
+#define ON_TICKS APP_TIMER_TICKS(led_on_ms)
+  //fix for port number problem with green led
+  port = NRF_P0;
+  if (mask == G_LED)
+    port = NRF_P1;
+
 #define LED_PWM_PARAMS(mask)                             \
   {                                                      \
     .active_high = false,                                \
     .duty_cycle_max = duty_cycle_max,                    \
     .duty_cycle_min = duty_cycle_min,                    \
     .duty_cycle_step = duty_cycle_step,                  \
-    .off_time_ticks = 65536,                             \
+    .off_time_ticks = 3000,                              \
     .on_time_ticks = 0,                                  \
     .leds_pin_bm = LED_SB_INIT_PARAMS_LEDS_PIN_BM(mask), \
-    .p_leds_port = port          \
+    .p_leds_port = port                                  \
   }
   const led_sb_init_params_t led_pwm_init_param = LED_PWM_PARAMS(mask);
 
   err_code = led_softblink_init(&led_pwm_init_param);
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_start(led_timer, ON_TICKS, NULL);
-  APP_ERROR_CHECK(err_code);
+  if (led_on_ms)
+  {
+    err_code = app_timer_start(led_timer, ON_TICKS, NULL);
+    APP_ERROR_CHECK(err_code);
+  }
   err_code = led_softblink_start(mask);
   APP_ERROR_CHECK(err_code);
 }
@@ -291,7 +300,6 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 //APP_TIMER_DEF(m_lev_send);
 APP_TIMER_DEF(m_timer_button_press_timeout);
 APP_TIMER_DEF(m_timer_button_long_press_timeout);
-APP_TIMER_DEF(m_timer_button_config_press_timeout);
 
 //APP_TIMER_DEF(m_antplus_controls_send);
 
@@ -447,6 +455,7 @@ static void led_timer_timeout(void *p_context)
   ret_code_t err_code;
   err_code = led_softblink_uninit();
   APP_ERROR_CHECK(err_code);
+  
 }
 static void bluetooth_timer_timeout(void *p_context)
 {
@@ -466,8 +475,52 @@ static void timer_button_press_timeout_handler(void *p_context)
 static void timer_button_long_press_timeout_handler(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
+
   ret_code_t err_code;
-  bsp_board_led_on(LED_R__PIN);
+  //stop the long press timer
+  err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
+  APP_ERROR_CHECK(err_code);
+
+  if (nrf_gpio_pin_read(ENTER__PIN) == 0)
+  {
+    if (ebike)
+    {
+      led_pwm_on(R_LED, 100, 99 - 1, 1, 100); //100 ms on
+                                             
+      nrf_delay_ms(1000);
+      err_code = led_softblink_uninit();
+      APP_ERROR_CHECK(err_code);
+     
+    }
+
+    if (garmin)
+    {
+      led_pwm_on(G_LED, 100, 99 - 1, 1, 100); //100 ms on
+        nrf_delay_ms(1000);
+      err_code = led_softblink_uninit();
+      APP_ERROR_CHECK(err_code);
+     
+    }
+
+    //led 2 (blue) brake control active
+    if (brake)
+    {
+      led_pwm_on(B_LED, 100, 99 - 1, 1, 100); //100 ms on
+      
+      nrf_delay_ms(1000);
+      err_code = led_softblink_uninit();
+      APP_ERROR_CHECK(err_code);
+      
+    }
+  }
+  else
+  {
+    led_pwm_on(R_LED, 100, 99 - 1, 1, 25); //100 ms on
+    nrf_delay_ms(50);
+    
+   
+  }
+
   //pageup/pagedown
   if ((nrf_gpio_pin_read(PLUS__PIN) == 0) && garmin)
     buttons_send_pag73(&m_antplus_controls, ENTER__PIN, 0);
@@ -496,52 +549,8 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     m_turn_bluetooth_off = true;
   }
 
-  if (nrf_gpio_pin_read(ENTER__PIN) == 0)
-  {
-    err_code = app_timer_start(m_timer_button_config_press_timeout, BUTTON_CONFIG_PRESS_TIMEOUT, NULL); //start the long press timer
-    APP_ERROR_CHECK(err_code);
-  }
-
-  //stop the long press timer
-  err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
-  APP_ERROR_CHECK(err_code);
   m_button_long_press = true; //needed for app_release long press actions
-  nrf_delay_ms(200);
-  bsp_board_led_off(LED_R__PIN); //turn off red led
-}
-
-static void timer_button_config_press_timeout_handler(void *p_context)
-{
-  UNUSED_PARAMETER(p_context);
-
-  //display configuration using board LEDs
-  bsp_board_led_off(LED_R__PIN);
-  bsp_board_led_off(LED_G__PIN);
-  bsp_board_led_off(LED_B__PIN);
-
-  //led 0 (green) ANT LEV active
-
-  if (ebike)
-  {
-    bsp_board_led_on(LED_R__PIN);
-    nrf_delay_ms(500);
-    bsp_board_led_off(LED_R__PIN);
-  }
-
-  if (garmin)
-  {
-    bsp_board_led_on(LED_G__PIN);
-    nrf_delay_ms(500);
-    bsp_board_led_off(LED_G__PIN);
-  }
-
-  //led 2 (blue) brake control active
-  if (brake)
-  {
-    bsp_board_led_on(LED_B__PIN);
-    nrf_delay_ms(500);
-    bsp_board_led_off(LED_B__PIN);
-  }
+                             
 }
 
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
@@ -571,42 +580,43 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     }
     else if (button_pin == STANDBY__PIN)
     {
+      //start of PWM test code to measure led current
       uint32_t led_mask;
-      if (led_duty_cycle > 1)
+      if (led_duty_cycle > 10)
       {
 
         switch (mask_number)
         {
         case (0):
-          led_mask = BSP_LED_0_MASK;
+          led_mask = P_LED; //pwr
           break;
         case (1):
-          led_mask = BSP_LED_1_MASK;
+          led_mask = R_LED; //red
           break;
         case (2):
-          led_mask = BSP_LED_2_MASK;
+          led_mask = G_LED; //green
           break;
         case (3):
-          led_mask = BSP_LED_3_MASK;
+          led_mask = B_LED; //blue
           break;
         }
-        if (led_duty_cycle==20)
+        if (led_duty_cycle == 110)
         {
-          led_pwm_on(led_mask, 255, 254 - 1, 1, 1000);
+          led_pwm_on(led_mask, 255, 254 - 1, 1, 10000); //10 seconds on
         }
         else
-        led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 200);
-      
-        led_duty_cycle -= 1;
+          led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 10000);
+
+        led_duty_cycle -= 10;
       }
       else
       {
         if (mask_number == 3)
           mask_number = -1;
         mask_number += 1;
-        led_duty_cycle = 20;
+        led_duty_cycle = 110;
       }
-
+      // end of pwm test code
       //turn off the lights (short press ) or turn on/off the power (long press)
       //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
       //the shutdown command is also needed here as the button release will wake up the board
@@ -624,13 +634,8 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
-    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
-    APP_ERROR_CHECK(err_code);
 
-    //turn off the leds
-    //bsp_board_led_off(LED_R__PIN);
-    //bsp_board_led_off(LED_G__PIN);
-    // bsp_board_led_off(LED_B__PIN);
+    
 
     break;
 
@@ -639,9 +644,6 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
 
     err_code = app_timer_start(m_timer_button_long_press_timeout, BUTTON_LONG_PRESS_TIMEOUT, NULL); //start the long press timer
-    APP_ERROR_CHECK(err_code);
-
-    err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
 
     m_button_long_press = false;
@@ -684,17 +686,10 @@ void buttons_init(void)
                               timer_button_long_press_timeout_handler);
 
   APP_ERROR_CHECK(err_code);
-  err_code = app_timer_create(&m_timer_button_config_press_timeout,
-                              APP_TIMER_MODE_REPEATED,
-                              timer_button_config_press_timeout_handler);
-
-  APP_ERROR_CHECK(err_code);
 
   err_code = app_timer_start(m_timer_button_press_timeout, BUTTON_PRESS_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
   err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
-  APP_ERROR_CHECK(err_code);
-  err_code = app_timer_stop(m_timer_button_config_press_timeout); //stop the long press timer
   APP_ERROR_CHECK(err_code);
 }
 void shutdown(void)
@@ -705,10 +700,7 @@ void shutdown(void)
   //  nrf_gpio_cfg_default(9);
 
   // enter in ultra low power mode
-  bsp_board_led_off(LED_PWR__PIN);
-  bsp_board_led_off(LED_R__PIN);
-  bsp_board_led_off(LED_G__PIN);
-  bsp_board_led_off(LED_B__PIN);
+ 
   // sd_power_system_off();
 
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
@@ -750,6 +742,7 @@ static void profile_setup(void)
     err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
     APP_ERROR_CHECK(err_code);
     err_code = ant_lev_disp_open(&m_ant_lev);
+    led_pwm_on(B_LED, 100, 0, 5, 0); //0 for no timer
     APP_ERROR_CHECK(err_code);
   }
 
@@ -758,6 +751,8 @@ static void profile_setup(void)
     err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
     APP_ERROR_CHECK(err_code);
     err_code = antplus_controls_sens_open(&m_antplus_controls);
+    APP_ERROR_CHECK(err_code);
+    led_pwm_on(B_LED, 100, 0, 5, 0); //0 for no timer
     APP_ERROR_CHECK(err_code);
   }
 }
@@ -1194,7 +1189,7 @@ static void init_app_timers(void)
   err_code = app_timer_create(&led_timer, APP_TIMER_MODE_SINGLE_SHOT, led_timer_timeout);
   APP_ERROR_CHECK(err_code);
 }
-
+/*
 static void leds_init(void)
 {
   ret_code_t ret_val;
@@ -1211,6 +1206,8 @@ static void leds_init(void)
 #endif
   }
 }
+*/
+
 void power_mgt_init(void)
 {
   ret_code_t err_code;
@@ -1219,17 +1216,51 @@ void power_mgt_init(void)
   //set up the pwr configuration
   sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
 }
+void ram_retention_setup(void)
+{
+#define NRF52_ONRAM1_OFFRAM1 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_On << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_On << POWER_RAM_POWER_S1RETENTION_Pos;
 
+#define NRF52_ONRAM1_OFFRAM0 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_Off << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_Off << POWER_RAM_POWER_S1RETENTION_Pos;
+
+#define NRF52_ONRAM0_OFFRAM0 POWER_RAM_POWER_S0POWER_Off << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_Off << POWER_RAM_POWER_S1POWER_Pos;
+
+  // Configure nRF52 RAM retention parameters. Set for System Off 0kB RAM retention
+  NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[1].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[2].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[3].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[4].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[5].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[6].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[7].POWER = NRF52_ONRAM1_OFFRAM0;
+#define NRF52_ONRAM1_OFFRAM1 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_On << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_On << POWER_RAM_POWER_S1RETENTION_Pos;
+
+#define NRF52_ONRAM1_OFFRAM0 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_Off << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_Off << POWER_RAM_POWER_S1RETENTION_Pos;
+
+#define NRF52_ONRAM0_OFFRAM0 POWER_RAM_POWER_S0POWER_Off << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_Off << POWER_RAM_POWER_S1POWER_Pos;
+
+  // Configure nRF52 RAM retention parameters. Set for System Off 0kB RAM retention
+  NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[1].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[2].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[3].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[4].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[5].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[6].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[7].POWER = NRF52_ONRAM1_OFFRAM0;
+}
 int main(void)
 {
   ret_code_t err_code;
   uint8_t enable_bluetooth = 0;
   //lfclk_config();
+
+  ram_retention_setup();
   softdevice_setup();
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
   sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
 
-  leds_init();
+  //leds_init();
 
   init_app_timers();
 
