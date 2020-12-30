@@ -254,7 +254,6 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
                                                        
                                                       
             } */
-
             break;
 
         case EVENT_RX:

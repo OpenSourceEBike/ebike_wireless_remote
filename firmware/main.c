@@ -1335,7 +1335,6 @@ int main(void)
   // idle loop
   while (true)
   {
-
     sd_app_evt_wait(); //sleep in power on mode
     check_interrupt_flags();
   }

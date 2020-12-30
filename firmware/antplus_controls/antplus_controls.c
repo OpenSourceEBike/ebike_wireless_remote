@@ -129,6 +129,10 @@ void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t but
                                              p_message_payload);
     send_page = true;
     (void)err_code; // ignore
+    //the following code is needed to start a new ANT Rx search if the garmin is disconnected during use and restarted
+     err_code = antplus_controls_sens_open(p_profile); 
+  //  APP_ERROR_CHECK(err_code);
+
   }
 }
 
@@ -136,6 +140,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
 {
   ASSERT(p_context != NULL);
   ASSERT(p_ant_evt != NULL);
+  
 
   antplus_controls_profile_t *p_profile = (antplus_controls_profile_t *)p_context;
 
@@ -157,7 +162,6 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
       break;
 
     case EVENT_RX:
-
       /*
       if (p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BROADCAST_DATA_ID || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_ACKNOWLEDGED_DATA_ID || p_ant_evt->message.ANT_MESSAGE_ucMesgID == MESG_BURST_DATA_ID)
       {
