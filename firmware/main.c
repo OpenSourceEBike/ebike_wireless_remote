@@ -60,7 +60,7 @@
 #include "nordic_common.h"
 #include "led_softblink.h"
 
-uint8_t led_duty_cycle = 110;
+uint8_t led_duty_cycle = 120;
 //mask_number used for pwm debugging
 int8_t mask_number = 0;
 #define P_LED BSP_LED_0_MASK //green (pwr)
@@ -75,8 +75,8 @@ uint8_t soft_blink = 0;
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-
-#define DEVICE_NAME "TSDZ2_remote" /**< Name of device. Will be included in the advertising data. */
+#define ANT_Search_TIMEOUT APP_TIMER_TICKS(300)              // 300 ms for Ant Search check
+#define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -133,6 +133,7 @@ static ble_gap_adv_data_t m_adv_data =
                 .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX}};
 */
 APP_TIMER_DEF(led_timer);
+APP_TIMER_DEF(ANT_Search_timer);
 void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, uint8_t duty_cycle_step, uint32_t led_on_ms)
 {
   //mask can be ORed to turn on R &B colors
@@ -143,7 +144,7 @@ void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, u
   uint32_t ON_TICKS = 0;
   ON_TICKS = APP_TIMER_TICKS(led_on_ms);
 
-  if ((soft_blink == 0) || (soft_blink == 2)) //ok to start another pwm instance
+  if (soft_blink == 0) //ok to start another pwm instance
   {
 
     //fix for port number problem with green led
@@ -462,6 +463,59 @@ void wait_and_reset(void)
   nrf_delay_ms(WAIT_TIME);
   sd_nvic_SystemReset(); // reset and start again
 }
+void ANT_Search_Start(void)
+{
+  ret_code_t err_code;
+  err_code = app_timer_start(ANT_Search_timer, ANT_Search_TIMEOUT, NULL);
+  APP_ERROR_CHECK(err_code);
+  led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+}
+static void ANT_Search_timeout(void *p_context)
+{
+  UNUSED_PARAMETER(p_context);
+  // first see if ANT pairing is completed
+  uint8_t LEV_Status;
+  uint8_t CTRL_Status;
+  ret_code_t err_code;
+
+  err_code = sd_ant_channel_status_get(LEV_CHANNEL_NUM, &LEV_Status);
+  APP_ERROR_CHECK(err_code);
+  err_code = sd_ant_channel_status_get(CONTROLS_CHANNEL_NUM, &CTRL_Status);
+  APP_ERROR_CHECK(err_code);
+
+  if (ebike && garmin) //both ant profiles are active
+  {
+    if (LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL && CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL) // both device are paired
+    {
+      soft_blink = led_softblink_uninit(); // turn off the soft_blink led
+      err_code = app_timer_stop(ANT_Search_timer);
+      APP_ERROR_CHECK(err_code);
+    }
+    return;
+  }
+
+  if (ebike)
+  {
+    if (LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)
+    {
+      soft_blink = led_softblink_uninit(); // turn off the soft_blink led
+      err_code = app_timer_stop(ANT_Search_timer);
+      APP_ERROR_CHECK(err_code);
+    }
+    return;
+  }
+  if (garmin)
+  {
+    if (CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)
+    {
+      soft_blink = led_softblink_uninit(); // turn off the soft_blink led
+      err_code = app_timer_stop(ANT_Search_timer);
+      APP_ERROR_CHECK(err_code);
+    }
+    return;
+  }
+}
+
 static void led_timer_timeout(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
@@ -493,14 +547,14 @@ static void timer_button_long_press_timeout_handler(void *p_context)
 
   if (nrf_gpio_pin_read(ENTER__PIN) == 0)
   {
-    if (ebike)
+    if (ebike && !soft_blink)
     {
       led_pwm_on(R_LED, 100, 99 - 1, 1, 100); //100 ms on
       nrf_delay_ms(1000);
       soft_blink = led_softblink_uninit();
     }
 
-    if (garmin)
+    if (garmin && !soft_blink)
     {
       led_pwm_on(G_LED, 100, 99 - 1, 1, 100); //100 ms on
       nrf_delay_ms(1000);
@@ -508,7 +562,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     }
 
     //led 2 (blue) brake control active
-    if (brake)
+    if (brake && !soft_blink)
     {
       led_pwm_on(B_LED, 100, 99 - 1, 1, 100); //100 ms on
       nrf_delay_ms(1000);
@@ -579,48 +633,50 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     }
     else if (button_pin == STANDBY__PIN)
     {
+      //the shutdown command is also needed here as the button release will wake up the board
+      //go to power off mode
+      if (m_button_long_press)
+        shutdown();
       //start of PWM test code to measure led current
-      uint32_t led_mask;
-      if (led_duty_cycle > 10)
+      if (!soft_blink)
       {
-
-        switch (mask_number)
+        uint32_t led_mask;
+        if (led_duty_cycle > 20)
         {
-        case (0):
-          led_mask = P_LED; //pwr
-          break;
-        case (1):
-          led_mask = R_LED; //red
-          break;
-        case (2):
-          led_mask = G_LED; //green
-          break;
-        case (3):
-          led_mask = B_LED; //blue
-          break;
-        }
-        if (led_duty_cycle == 110)
-          led_pwm_on(led_mask, 255, 254 - 1, 1, 10000); //10 seconds on
-        else
-          led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 10000);
 
-        led_duty_cycle -= 10;
-      }
-      else
-      {
-        if (mask_number == 3)
-          mask_number = -1;
-        mask_number += 1;
-        led_duty_cycle = 110;
+          switch (mask_number)
+          {
+          case (0):
+            led_mask = P_LED; //pwr
+            break;
+          case (1):
+            led_mask = R_LED; //red
+            break;
+          case (2):
+            led_mask = G_LED; //green
+            break;
+          case (3):
+            led_mask = B_LED; //blue
+            break;
+          }
+          if (led_duty_cycle == 120)
+            led_pwm_on(led_mask, 255, 254 - 1, 1, 10000); //10 seconds on
+          else
+            led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 10000);
+
+          led_duty_cycle -= 20;
+        }
+        else
+        {
+          if (mask_number == 3)
+            mask_number = -1;
+          mask_number += 1;
+          led_duty_cycle = 120;
+        }
       }
       // end of pwm test code
       //turn off the lights (short press ) or turn on/off the power (long press)
       //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
-      //the shutdown command is also needed here as the button release will wake up the board
-      //go to power off mode
-      if (m_button_long_press)
-
-        shutdown();
     }
     m_button_long_press = false; //reset the long press timer
 
@@ -704,6 +760,8 @@ void shutdown(void)
 static void profile_setup(void)
 {
   ret_code_t err_code;
+  //start the ANT Search LED
+  ANT_Search_Start();
 
   // fill battery status data page.
   m_antplus_controls.page_82 = ANTPLUS_CONTROLS_PAGE82(295); // battery 2.95 volts, fully charged
@@ -1101,37 +1159,6 @@ void check_interrupt_flags(void)
   //need flags to handle interrupt events for flash write
   //this is required due to interrupt priority
   //see: https://devzone.nordicsemi.com/f/nordic-q-a/57067/calling-fds_record_update-in-isr
-  ret_code_t err_code;
-
-  // first see if ANT pairing is completed
-  uint8_t LEV_Status;
-  uint8_t CTRL_Status;
-
-  err_code = sd_ant_channel_status_get(LEV_CHANNEL_NUM, &LEV_Status);
-  APP_ERROR_CHECK(err_code);
-  err_code = sd_ant_channel_status_get(CONTROLS_CHANNEL_NUM, &CTRL_Status);
-  APP_ERROR_CHECK(err_code);
-
-  if (ebike && garmin) //both are activated
-  {
-    if ((LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL) && (CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)) // both device are paired
-    {
-      err_code = led_softblink_uninit(); // turn off the soft_blink led
-      soft_blink = 2;                    //special code to indicate this function is in the idle loop
-    }
-    else
-      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
-  }
-  else //only one ANT profile is activated
-  {
-    if ((LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL) || (CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)) // either profile is paired
-    {
-      err_code = led_softblink_uninit(); // turn off the soft_blink led
-      soft_blink = 2;                    //special code to indicate that this function is in the idle loop
-    }
-    else
-      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
-  }
 
   //first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth off on restart
   if (new_ant_device_id != old_ant_device_id)
@@ -1210,6 +1237,9 @@ static void init_app_timers(void)
   APP_ERROR_CHECK(err_code);
 
   err_code = app_timer_create(&led_timer, APP_TIMER_MODE_SINGLE_SHOT, led_timer_timeout);
+  APP_ERROR_CHECK(err_code);
+
+  err_code = app_timer_create(&ANT_Search_timer, APP_TIMER_MODE_REPEATED, ANT_Search_timeout);
   APP_ERROR_CHECK(err_code);
 }
 /*

@@ -272,10 +272,11 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
         //communication has been lost
          //open the channel again to reininiate search
         sd_ant_channel_open(p_profile->channel_number);
+        ANT_Search_Start();
          
         break;
         case EVENT_RX_FAIL_GO_TO_SEARCH:
-        
+        ANT_Search_Start();
         break;  
         default:
             break;
