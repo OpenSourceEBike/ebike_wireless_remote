@@ -226,7 +226,7 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
         uint32_t err_code;
         uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
         ant_lev_disp_cb_t *p_lev_cb = p_profile->_cb.p_sens_cb;
-        ant_request_controller_disp_evt_handler(&(p_lev_cb->req_controller), p_ant_evt);
+      //  ant_request_controller_disp_evt_handler(&(p_lev_cb->req_controller), p_ant_evt);
 
         switch (p_ant_evt->event)
         {
@@ -234,8 +234,7 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
         case EVENT_TRANSFER_TX_FAILED:
         case EVENT_TRANSFER_TX_COMPLETED:
 
-            err_code=led_softblink_uninit();
-            APP_ERROR_CHECK(err_code);
+            
           
             disp_message_decode(p_profile, p_message_payload);
             if (ant_request_controller_ack_needed(&(p_lev_cb->req_controller)))
@@ -265,13 +264,19 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
             }
             break;
         case EVENT_RX_SEARCH_TIMEOUT:
-            // enter ultra low power mode
-
-            //shutdown();
-            // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
+           
 
             
             break;
+        case EVENT_CHANNEL_CLOSED:
+        //communication has been lost
+         //open the channel again to reininiate search
+        sd_ant_channel_open(p_profile->channel_number);
+         
+        break;
+        case EVENT_RX_FAIL_GO_TO_SEARCH:
+        
+        break;  
         default:
             break;
         }

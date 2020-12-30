@@ -67,6 +67,10 @@ int8_t mask_number = 0;
 #define R_LED BSP_LED_1_MASK //red
 #define G_LED BSP_LED_2_MASK //green
 #define B_LED BSP_LED_3_MASK //blue
+//pwm blinking led routine is led_pwm_on
+//only one instance may be active at any time
+//softblink is the instance flag 1 means led busy, 0 or 2 means led ready
+uint8_t soft_blink = 0;
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
@@ -131,13 +135,21 @@ static ble_gap_adv_data_t m_adv_data =
 APP_TIMER_DEF(led_timer);
 void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, uint8_t duty_cycle_step, uint32_t led_on_ms)
 {
+  //mask can be ORed to turn on R &B colors
+  //ie: R_LED || B_LED
+  //not G_LED as it is on a diffderent gpio port
   ret_code_t err_code;
   NRF_GPIO_Type *port;
-#define ON_TICKS APP_TIMER_TICKS(led_on_ms)
-  //fix for port number problem with green led
-  port = NRF_P0;
-  if (mask == G_LED)
-    port = NRF_P1;
+  uint32_t ON_TICKS = 0;
+  ON_TICKS = APP_TIMER_TICKS(led_on_ms);
+
+  if ((soft_blink == 0) || (soft_blink == 2)) //ok to start another pwm instance
+  {
+
+    //fix for port number problem with green led
+    port = NRF_P0;
+    if (mask == G_LED)
+      port = NRF_P1;
 
 #define LED_PWM_PARAMS(mask)                             \
   {                                                      \
@@ -150,19 +162,21 @@ void led_pwm_on(uint32_t mask, uint8_t duty_cycle_max, uint8_t duty_cycle_min, u
     .leds_pin_bm = LED_SB_INIT_PARAMS_LEDS_PIN_BM(mask), \
     .p_leds_port = port                                  \
   }
-  const led_sb_init_params_t led_pwm_init_param = LED_PWM_PARAMS(mask);
+    const led_sb_init_params_t led_pwm_init_param = LED_PWM_PARAMS(mask);
 
-  err_code = led_softblink_init(&led_pwm_init_param);
-  APP_ERROR_CHECK(err_code);
-  if (led_on_ms)
-  {
-    err_code = app_timer_start(led_timer, ON_TICKS, NULL);
+    err_code = led_softblink_init(&led_pwm_init_param);
     APP_ERROR_CHECK(err_code);
-  }
-  err_code = led_softblink_start(mask);
-  APP_ERROR_CHECK(err_code);
-}
 
+    if (led_on_ms)
+    {
+      err_code = app_timer_start(led_timer, ON_TICKS, NULL);
+      APP_ERROR_CHECK(err_code);
+    }
+    err_code = led_softblink_start(mask);
+    APP_ERROR_CHECK(err_code);
+    soft_blink = 1; //set the blocking flag
+  }
+}
 static ble_uuid_t m_adv_uuids[] = /**< Universally unique service identifiers. */
     {
         {BLE_UUID_HEALTH_THERMOMETER_SERVICE, BLE_UUID_TYPE_BLE},
@@ -309,7 +323,6 @@ bool m_button_long_press = false;
 
 //set default  old ant ID for reset;
 
-#define MSEC_PER_TICK 10
 APP_TIMER_DEF(bluetooth_timer);
 
 #define BLUETOOTH_TIMEOUT APP_TIMER_TICKS(1000 * 60 * 5) //turn off bluetooth after 5 min
@@ -452,10 +465,7 @@ void wait_and_reset(void)
 static void led_timer_timeout(void *p_context)
 {
   UNUSED_PARAMETER(p_context);
-  ret_code_t err_code;
-  err_code = led_softblink_uninit();
-  APP_ERROR_CHECK(err_code);
-  
+  soft_blink = led_softblink_uninit();
 }
 static void bluetooth_timer_timeout(void *p_context)
 {
@@ -486,39 +496,29 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     if (ebike)
     {
       led_pwm_on(R_LED, 100, 99 - 1, 1, 100); //100 ms on
-                                             
       nrf_delay_ms(1000);
-      err_code = led_softblink_uninit();
-      APP_ERROR_CHECK(err_code);
-     
+      soft_blink = led_softblink_uninit();
     }
 
     if (garmin)
     {
       led_pwm_on(G_LED, 100, 99 - 1, 1, 100); //100 ms on
-        nrf_delay_ms(1000);
-      err_code = led_softblink_uninit();
-      APP_ERROR_CHECK(err_code);
-     
+      nrf_delay_ms(1000);
+      soft_blink = led_softblink_uninit();
     }
 
     //led 2 (blue) brake control active
     if (brake)
     {
       led_pwm_on(B_LED, 100, 99 - 1, 1, 100); //100 ms on
-      
       nrf_delay_ms(1000);
-      err_code = led_softblink_uninit();
-      APP_ERROR_CHECK(err_code);
-      
+      soft_blink = led_softblink_uninit();
     }
   }
   else
   {
     led_pwm_on(R_LED, 100, 99 - 1, 1, 25); //100 ms on
     nrf_delay_ms(50);
-    
-   
   }
 
   //pageup/pagedown
@@ -550,7 +550,6 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   }
 
   m_button_long_press = true; //needed for app_release long press actions
-                             
 }
 
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
@@ -601,9 +600,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
           break;
         }
         if (led_duty_cycle == 110)
-        {
           led_pwm_on(led_mask, 255, 254 - 1, 1, 10000); //10 seconds on
-        }
         else
           led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 10000);
 
@@ -634,8 +631,6 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     APP_ERROR_CHECK(err_code);
     err_code = app_timer_stop(m_timer_button_long_press_timeout); //stop the long press timer
     APP_ERROR_CHECK(err_code);
-
-    
 
     break;
 
@@ -700,7 +695,7 @@ void shutdown(void)
   //  nrf_gpio_cfg_default(9);
 
   // enter in ultra low power mode
- 
+
   // sd_power_system_off();
 
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
@@ -708,7 +703,7 @@ void shutdown(void)
 
 static void profile_setup(void)
 {
-  uint32_t err_code;
+  ret_code_t err_code;
 
   // fill battery status data page.
   m_antplus_controls.page_82 = ANTPLUS_CONTROLS_PAGE82(295); // battery 2.95 volts, fully charged
@@ -742,8 +737,6 @@ static void profile_setup(void)
     err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
     APP_ERROR_CHECK(err_code);
     err_code = ant_lev_disp_open(&m_ant_lev);
-    led_pwm_on(B_LED, 100, 0, 5, 0); //0 for no timer
-    APP_ERROR_CHECK(err_code);
   }
 
   if (garmin)
@@ -751,8 +744,6 @@ static void profile_setup(void)
     err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
     APP_ERROR_CHECK(err_code);
     err_code = antplus_controls_sens_open(&m_antplus_controls);
-    APP_ERROR_CHECK(err_code);
-    led_pwm_on(B_LED, 100, 0, 5, 0); //0 for no timer
     APP_ERROR_CHECK(err_code);
   }
 }
@@ -1106,9 +1097,41 @@ void ble_init(void)
 
 void check_interrupt_flags(void)
 {
+
   //need flags to handle interrupt events for flash write
   //this is required due to interrupt priority
   //see: https://devzone.nordicsemi.com/f/nordic-q-a/57067/calling-fds_record_update-in-isr
+  ret_code_t err_code;
+
+  // first see if ANT pairing is completed
+  uint8_t LEV_Status;
+  uint8_t CTRL_Status;
+
+  err_code = sd_ant_channel_status_get(LEV_CHANNEL_NUM, &LEV_Status);
+  APP_ERROR_CHECK(err_code);
+  err_code = sd_ant_channel_status_get(CONTROLS_CHANNEL_NUM, &CTRL_Status);
+  APP_ERROR_CHECK(err_code);
+
+  if (ebike && garmin) //both are activated
+  {
+    if ((LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL) && (CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)) // both device are paired
+    {
+      err_code = led_softblink_uninit(); // turn off the soft_blink led
+      soft_blink = 2;                    //special code to indicate this function is in the idle loop
+    }
+    else
+      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+  }
+  else //only one ANT profile is activated
+  {
+    if ((LEV_Status != (uint8_t)STATUS_SEARCHING_CHANNEL) || (CTRL_Status != (uint8_t)STATUS_SEARCHING_CHANNEL)) // either profile is paired
+    {
+      err_code = led_softblink_uninit(); // turn off the soft_blink led
+      soft_blink = 2;                    //special code to indicate that this function is in the idle loop
+    }
+    else
+      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+  }
 
   //first see if there was a change to the ANT ID, if so, store in flash and turn the bluetooth off on restart
   if (new_ant_device_id != old_ant_device_id)
@@ -1253,8 +1276,7 @@ int main(void)
 {
   ret_code_t err_code;
   uint8_t enable_bluetooth = 0;
-  //lfclk_config();
-
+  //lfclk_config()
   ram_retention_setup();
   softdevice_setup();
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
