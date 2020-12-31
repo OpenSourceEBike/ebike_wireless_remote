@@ -129,10 +129,9 @@ void buttons_send_pag73(antplus_controls_profile_t *p_profile, button_pins_t but
                                              p_message_payload);
     send_page = true;
     (void)err_code; // ignore
-    //the following code is needed to start a new ANT Rx search if the garmin is disconnected during use and restarted
-     err_code = antplus_controls_sens_open(p_profile); 
-  //  APP_ERROR_CHECK(err_code);
-
+                    //the following code is needed to start a new ANT Rx search if the garmin is disconnected during use and restarted
+    err_code = antplus_controls_sens_open(p_profile);
+    //  APP_ERROR_CHECK(err_code);
   }
 }
 
@@ -140,7 +139,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
 {
   ASSERT(p_context != NULL);
   ASSERT(p_ant_evt != NULL);
-  
+  static int8_t restart_count = 0;
 
   antplus_controls_profile_t *p_profile = (antplus_controls_profile_t *)p_context;
 
@@ -158,7 +157,7 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
       break;
 
     case EVENT_RX_SEARCH_TIMEOUT:
-
+      ANT_Search_Stop();
       break;
 
     case EVENT_RX:
@@ -200,9 +199,13 @@ void antplus_controls_sens_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
 
     case EVENT_CHANNEL_CLOSED:
       //communication has been lost
-      //open the channel again to reininiate search
-      sd_ant_channel_open(p_profile->channel_number);
-      ANT_Search_Start();
+      //try restarting up to 6 times if connection cannot be made (3 min total search time)
+      restart_count += 1;
+      if (restart_count < 6)
+      {
+        sd_ant_channel_open(p_profile->channel_number);
+        ANT_Search_Start();
+      }
       break;
     case EVENT_RX_FAIL_GO_TO_SEARCH:
       ANT_Search_Start();

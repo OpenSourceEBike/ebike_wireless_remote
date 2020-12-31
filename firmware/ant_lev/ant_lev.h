@@ -19,6 +19,7 @@
 #include "sdk_errors.h"
 #include "pins.h"
 extern void ANT_Search_Start(void);
+extern void ANT_Search_Stop(void);
 #define LEV_DEVICE_TYPE 0x14u      // ANT+ LEV datasheet: Device type reserved for ANT+ LEV.
 #define LEV_ANTPLUS_RF_FREQ 0x39u  // ANT+ LEV datasheet: Frequency, decimal 57 / 0x39 (2457 MHz).
 #define LEV_MSG_PERIOD_4Hz 0x2000u ///< Message period, decimal 8192 (4.00 Hz).

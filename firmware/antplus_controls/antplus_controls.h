@@ -19,6 +19,7 @@
 #include "sdk_errors.h"
 #include "pins.h"
 extern void ANT_Search_Start(void);
+extern void ANT_Search_Stop(void);
 #define CONTROLS_DEVICE_TYPE 0x10u     // ANT+ controls datasheet: 16 (0x10) – indicates search for an ANT+ controllable device.
 #define CONTROLS_ANTPLUS_RF_FREQ 0x39u // ANT+ controls datasheet: Frequency, decimal 57 / 0x39 (2457 MHz).
 

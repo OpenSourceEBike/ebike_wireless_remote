@@ -105,8 +105,8 @@ uint8_t soft_blink = 0;
 uint8_t ebike = 1;                                                     //ebike control as default                                                //ANT LEV ebike as a default
 uint8_t garmin = 0;                                                    //no garmin computer as a default
 uint8_t brake = 0;
-bool shutdown_flag = false; 
-bool plus_minus_flag =false;        
+bool shutdown_flag = false;
+bool plus_minus_flag = false;
 NRF_BLE_GATT_DEF(m_gatt);           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising); /**< Advertising module instance. */
@@ -464,6 +464,13 @@ void wait_and_reset(void)
 
   nrf_delay_ms(WAIT_TIME);
   sd_nvic_SystemReset(); // reset and start again
+}
+void ANT_Search_Stop(void)
+{
+  ret_code_t err_code;
+  soft_blink = led_softblink_uninit(); // turn off the soft_blink led
+  err_code = app_timer_stop(ANT_Search_timer);
+  APP_ERROR_CHECK(err_code);
 }
 void ANT_Search_Start(void)
 {
@@ -1232,7 +1239,7 @@ void check_interrupt_flags(void)
   // check to see if low power mode is requested
   if (shutdown_flag)
     shutdown();
-    
+
   // now check for bluetooth flag on plus button press
   if (m_turn_bluetooth_on)
   {
