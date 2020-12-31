@@ -104,10 +104,12 @@ uint8_t soft_blink = 0;
 #define APP_FEATURE_NOT_SUPPORTED BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2 /**< Reply when unsupported features are requested. */
 uint8_t ebike = 1;                                                     //ebike control as default                                                //ANT LEV ebike as a default
 uint8_t garmin = 0;                                                    //no garmin computer as a default
-uint8_t brake = 0;                                                     //no brake control as default
-NRF_BLE_GATT_DEF(m_gatt);                                              /**< GATT module instance. */
-NRF_BLE_QWR_DEF(m_qwr);                                                /**< Context for the Queued Write module.*/
-BLE_ADVERTISING_DEF(m_advertising);                                    /**< Advertising module instance. */
+uint8_t brake = 0;
+bool shutdown_flag = false; 
+bool plus_minus_flag =false;        
+NRF_BLE_GATT_DEF(m_gatt);           /**< GATT module instance. */
+NRF_BLE_QWR_DEF(m_qwr);             /**< Context for the Queued Write module.*/
+BLE_ADVERTISING_DEF(m_advertising); /**< Advertising module instance. */
 BLE_ANT_ID_DEF(m_ble_ant_id_service);
 //test flash write completed
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
@@ -603,6 +605,18 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     m_turn_bluetooth_off = true;
   }
 
+  if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(PLUS__PIN) == 0))
+  {
+    // shutdown the remote
+    plus_minus_flag = true; // reset and start again;
+  }
+  if (nrf_gpio_pin_read(STANDBY__PIN) == 0)
+  //turn motor power on/off - turn on bluetooth
+  {
+    // set flag to enable bluetooth on restart - needed because of interrupt priority
+    m_turn_bluetooth_on = true;
+  }
+
   m_button_long_press = true; //needed for app_release long press actions
 }
 
@@ -614,14 +628,18 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
   {
   case APP_BUTTON_RELEASE: //process the button actions
     if (button_pin == MINUS__PIN)
-    //motor assist increase
     {
+      if (plus_minus_flag)
+        shutdown_flag = true; //needed because button release will wake up the board
+
       if (ebike)
         buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
     else if (button_pin == PLUS__PIN)
-    //motor assist decrease
     {
+      if (plus_minus_flag)
+        shutdown_flag = true; //needed because button release will wake up the board
+
       if (ebike)
         buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
@@ -635,48 +653,50 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     {
       //the shutdown command is also needed here as the button release will wake up the board
       //go to power off mode
-      if (m_button_long_press)
-        shutdown();
-      //start of PWM test code to measure led current
-      if (!soft_blink)
+
+      if (!m_button_long_press)
       {
-        uint32_t led_mask;
-        if (led_duty_cycle > 20)
+        //start of PWM test code to measure led current
+        if (!soft_blink)
         {
-
-          switch (mask_number)
+          uint32_t led_mask;
+          if (led_duty_cycle > 20)
           {
-          case (0):
-            led_mask = P_LED; //pwr
-            break;
-          case (1):
-            led_mask = R_LED; //red
-            break;
-          case (2):
-            led_mask = G_LED; //green
-            break;
-          case (3):
-            led_mask = B_LED; //blue
-            break;
-          }
-          if (led_duty_cycle == 120)
-            led_pwm_on(led_mask, 255, 254 - 1, 1, 10000); //10 seconds on
-          else
-            led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 10000);
 
-          led_duty_cycle -= 20;
+            switch (mask_number)
+            {
+            case (0):
+              led_mask = P_LED; //pwr
+              break;
+            case (1):
+              led_mask = R_LED; //red
+              break;
+            case (2):
+              led_mask = G_LED; //green
+              break;
+            case (3):
+              led_mask = B_LED; //blue
+              break;
+            }
+            if (led_duty_cycle == 120)
+              led_pwm_on(led_mask, 255, 254 - 1, 1, 2000); // seconds on
+            else
+              led_pwm_on(led_mask, led_duty_cycle, led_duty_cycle - 1, 1, 1000);
+
+            led_duty_cycle -= 20;
+          }
+          else
+          {
+            if (mask_number == 3)
+              mask_number = -1;
+            mask_number += 1;
+            led_duty_cycle = 120;
+          }
         }
-        else
-        {
-          if (mask_number == 3)
-            mask_number = -1;
-          mask_number += 1;
-          led_duty_cycle = 120;
-        }
+        // end of pwm test code
+        //turn off the lights (short press ) or turn on/off the power (long press)
+        //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
       }
-      // end of pwm test code
-      //turn off the lights (short press ) or turn on/off the power (long press)
-      //buttons_send_page16(&m_ant_lev, button_pin, m_button_long_press);
     }
     m_button_long_press = false; //reset the long press timer
 
@@ -1209,7 +1229,10 @@ void check_interrupt_flags(void)
     eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake);
     wait_and_reset();
   }
-
+  // check to see if low power mode is requested
+  if (shutdown_flag)
+    shutdown();
+    
   // now check for bluetooth flag on plus button press
   if (m_turn_bluetooth_on)
   {
