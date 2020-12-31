@@ -1238,8 +1238,10 @@ void check_interrupt_flags(void)
   }
   // check to see if low power mode is requested
   if (shutdown_flag)
+  {
+    nrf_delay_ms(1000);
     shutdown();
-
+  }
   // now check for bluetooth flag on plus button press
   if (m_turn_bluetooth_on)
   {
