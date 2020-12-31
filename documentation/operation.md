@@ -14,6 +14,7 @@ Long Press Buttons
 * Long Press both the [ENTER] + [STANDBY] buttons at the same time to initate Device Firmware Update (DFU) mode. Either the remote or bootloader firmware can be updated to a new version using a porovided upgrade packet zip file in DFU mode. For more information click [here](dfu.md).
 * Long press the [PLUS] + [STANDBY] buttons to start bluetooth to allow the [Configuration Options](configuration.md)  to be set.
 * Long press the [MINUS] + [STANDBY] buttons to stop bluetooth to save power. 
+* Long press the [MINUS] + [PLUS] buttons to put the remote control in 'deep sleep' low power mode
 
 Bluetooth will also automatically turn off after:
     * 5 minutes if you left bluetooth running

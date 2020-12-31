@@ -208,25 +208,17 @@ void led_softblink_on_time_set(uint32_t on_time_ticks)
 }
 
 
+
 ret_code_t led_softblink_uninit(void)
 {
-    ASSERT(m_led_sb.led_sb_state != NRFX_DRV_STATE_UNINITIALIZED);
-
+    if(m_led_sb.led_sb_state != NRFX_DRV_STATE_UNINITIALIZED)
+    {
     ret_code_t err_code;
-
     err_code = led_softblink_stop();
-
-    if (err_code == NRF_SUCCESS)
-    {
-        m_led_sb.led_sb_state = NRFX_DRV_STATE_UNINITIALIZED;
-    }
-    else
-    {
-        return err_code;
-    }
-
+    APP_ERROR_CHECK(err_code);
+    m_led_sb.led_sb_state = NRFX_DRV_STATE_UNINITIALIZED;
     memset(&m_led_sb, 0, sizeof(m_led_sb));
-
-    return NRF_SUCCESS;
+    }
+    return 0;
 }
 #endif //NRF_MODULE_ENABLED(LED_SOFTBLINK)

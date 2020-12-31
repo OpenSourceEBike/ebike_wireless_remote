@@ -18,6 +18,7 @@
 #include "app_button.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_delay.h"
+#include "led_softblink.h"
 
 #define COMMON_DATA_INTERVAL 20 /**< Common data page is sent every 20th message. */
 
@@ -88,9 +89,9 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
         }
         else if (button == ENTER__PIN)
         {
-           // p_profile->page_16.wheel_circumference -= 10; //1818 circum
+            // p_profile->page_16.wheel_circumference -= 10; //1818 circum
 
-           // send_page = true;
+            // send_page = true;
         }
         else if (button == STANDBY__PIN)
         {
@@ -156,7 +157,7 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
         err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number, sizeof(p_message_payload), p_message_payload);
         if (err_code != 0)
         {
-           // nrf_delay_ms(50);
+            // nrf_delay_ms(50);
         }
         (void)err_code; // ignore
         //nrf_delay_ms(50);
@@ -219,28 +220,30 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
     ASSERT(p_context != NULL);
     ASSERT(p_ant_evt != NULL);
     ant_lev_profile_t *p_profile = (ant_lev_profile_t *)p_context;
+    static int8_t restart_count = 0;
 
     if (p_ant_evt->channel == p_profile->channel_number)
     {
         uint32_t err_code;
         uint8_t p_message_payload[ANT_STANDARD_DATA_PAYLOAD_SIZE];
         ant_lev_disp_cb_t *p_lev_cb = p_profile->_cb.p_sens_cb;
-        ant_request_controller_disp_evt_handler(&(p_lev_cb->req_controller), p_ant_evt);
+        //  ant_request_controller_disp_evt_handler(&(p_lev_cb->req_controller), p_ant_evt);
 
         switch (p_ant_evt->event)
         {
         case EVENT_TX:
         case EVENT_TRANSFER_TX_FAILED:
         case EVENT_TRANSFER_TX_COMPLETED:
+
             disp_message_decode(p_profile, p_message_payload);
             if (ant_request_controller_ack_needed(&(p_lev_cb->req_controller)))
             {
                 err_code = sd_ant_acknowledge_message_tx(p_profile->channel_number,
                                                          sizeof(p_message_payload),
                                                          p_message_payload);
-             APP_ERROR_CHECK(err_code);                                            
+                APP_ERROR_CHECK(err_code);
             }
- /*           else
+            /*           else
             {
                err_code = sd_ant_broadcast_message_tx(p_profile->channel_number,
                                                        sizeof(p_message_payload),
@@ -250,7 +253,6 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
                                                        
                                                       
             } */
-           
             break;
 
         case EVENT_RX:
@@ -260,10 +262,21 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
             }
             break;
         case EVENT_RX_SEARCH_TIMEOUT:
-            // enter ultra low power mode
+            ANT_Search_Stop();
 
-            shutdown();
-            // disp_message_decode(p_profile, p_ant_evt->message.ANT_MESSAGE_aucPayload);
+            break;
+        case EVENT_CHANNEL_CLOSED:
+            //communication has been lost
+            //try restarting up to 6 times if connection cannot be made (3 min total search time)
+            restart_count += 1;
+            if (restart_count < 6)
+            {
+                sd_ant_channel_open(p_profile->channel_number);
+                ANT_Search_Start();
+            }
+            break;
+        case EVENT_RX_FAIL_GO_TO_SEARCH:
+            ANT_Search_Start();
             break;
         default:
             break;
