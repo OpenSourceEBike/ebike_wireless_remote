@@ -55,10 +55,12 @@
 #include "bsp.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+#include "nrf_drv_gpiote.h"
 
 #include "low_power_pwm.h"
 #include "nordic_common.h"
 #include "led_softblink.h"
+#include "ant_search_config.h"
 
 uint8_t led_duty_cycle = 120;
 //mask_number used for pwm debugging
@@ -747,6 +749,7 @@ void buttons_init(void)
   nrf_gpio_cfg_sense_input(MINUS__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(ENTER__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
   nrf_gpio_cfg_sense_input(STANDBY__PIN, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_SENSE_Low);
+  nrf_drv_gpiote_in_event_disable(BUTTON_1);
 
   if (err_code == NRF_SUCCESS)
   {
@@ -780,15 +783,23 @@ void shutdown(void)
   // enter in ultra low power mode
 
   // sd_power_system_off();
-
+  nrf_delay_ms(1000);
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
 
 static void profile_setup(void)
 {
   ret_code_t err_code;
-  //start the ANT Search LED
-  ANT_Search_Start();
+  ant_search_config_t lev_search_config = DEFAULT_ANT_SEARCH_CONFIG(LEV_CHANNEL_NUM);
+  ant_search_config_t controls_search_config = DEFAULT_ANT_SEARCH_CONFIG(CONTROLS_CHANNEL_NUM);
+  lev_search_config.low_priority_timeout = 2; //5 seconds
+  controls_search_config.low_priority_timeout = 2;//5 seconds
+  lev_search_config.high_priority_timeout = 5;      //4*2.5 =10 seconds
+  controls_search_config.high_priority_timeout = 5; //4*2.5 =10 seconds
+
+  //start the ANT Search LED is profiles are active
+  if (ebike || garmin)
+    ANT_Search_Start();
 
   // fill battery status data page.
   m_antplus_controls.page_82 = ANTPLUS_CONTROLS_PAGE82(295); // battery 2.95 volts, fully charged
@@ -822,6 +833,9 @@ static void profile_setup(void)
     err_code = ant_lev_disp_init(&m_ant_lev, LEV_DISP_CHANNEL_CONFIG(m_ant_lev), ant_lev_evt_handler);
     APP_ERROR_CHECK(err_code);
     err_code = ant_lev_disp_open(&m_ant_lev);
+    // Configure ant search timeout
+    err_code = ant_search_init(&lev_search_config);
+    APP_ERROR_CHECK(err_code);
   }
 
   if (garmin)
@@ -829,6 +843,8 @@ static void profile_setup(void)
     err_code = antplus_controls_sens_init(&m_antplus_controls, CONTROLS_SENS_CHANNEL_CONFIG(m_antplus_controls), CONTROLS_SENS_PROFILE_CONFIG(m_antplus_controls));
     APP_ERROR_CHECK(err_code);
     err_code = antplus_controls_sens_open(&m_antplus_controls);
+    APP_ERROR_CHECK(err_code);
+    err_code = ant_search_init(&controls_search_config);
     APP_ERROR_CHECK(err_code);
   }
 }
@@ -1293,14 +1309,6 @@ static void leds_init(void)
 }
 */
 
-void power_mgt_init(void)
-{
-  ret_code_t err_code;
-  err_code = nrf_pwr_mgmt_init();
-  APP_ERROR_CHECK(err_code);
-  //set up the pwr configuration
-  sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
-}
 void ram_retention_setup(void)
 {
 #define NRF52_ONRAM1_OFFRAM1 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_On << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_On << POWER_RAM_POWER_S1RETENTION_Pos;
@@ -1334,15 +1342,24 @@ void ram_retention_setup(void)
   NRF_POWER->RAM[6].POWER = NRF52_ONRAM1_OFFRAM0;
   NRF_POWER->RAM[7].POWER = NRF52_ONRAM1_OFFRAM0;
 }
+void power_mgt_init(void)
+{
+  ret_code_t err_code;
+  err_code = nrf_pwr_mgmt_init();
+  APP_ERROR_CHECK(err_code);
+  //set up the pwr configuration
+  sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
+  NRF_SPI0->ENABLE = 0;
+  NRF_UART0->ENABLE = 0;
+}
 int main(void)
 {
   ret_code_t err_code;
   uint8_t enable_bluetooth = 0;
   //lfclk_config()
   ram_retention_setup();
-  softdevice_setup();
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
-  sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
+  softdevice_setup();
 
   //leds_init();
 
@@ -1362,12 +1379,13 @@ int main(void)
   }
   // set up the ANT profiles
   profile_setup();
-  //power_mgt_init();
+  power_mgt_init();
 
   // idle loop
   while (true)
   {
-    sd_app_evt_wait(); //sleep in power on mode
+    // sd_app_evt_wait(); //sleep in power on mode
+    nrf_pwr_mgmt_run();
     check_interrupt_flags();
   }
 }
