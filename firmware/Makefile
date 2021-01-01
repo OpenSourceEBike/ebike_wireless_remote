@@ -109,6 +109,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_70.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_80.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_81.c \
+  $(SDK_ROOT)/components/ant/ant_search_config/ant_search_config.c \
   $(PROJ_DIR)/antplus_controls/antplus_controls.c \
   $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_73.c \
   $(PROJ_DIR)/antplus_controls/pages/antplus_controls_page_82.c \
@@ -208,6 +209,7 @@ INC_FOLDERS += \
 	$(SDK_ROOT)/components/ble/ble_advertising \
   $(SDK_ROOT)/components/ant/ant_state_indicator \
   $(SDK_ROOT)/components/ant/ant_key_manager \
+  $(SDK_ROOT)/components/ant/ant_search_config \
   $(SDK_ROOT)/components/ant/ant_key_manager/config \
   $(SDK_ROOT)/components/ant/ant_channel_config \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/ant_request_controller \

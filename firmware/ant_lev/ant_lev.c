@@ -71,6 +71,8 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
     ASSERT(p_profile != NULL);
     bool long_press = m_button_long_press;
     bool send_page = false;
+    //open if previously closed
+    sd_ant_channel_open(p_profile->channel_number);
     if (!long_press)
     {
         if (button == MINUS__PIN)
@@ -267,9 +269,9 @@ void ant_lev_disp_evt_handler(ant_evt_t *p_ant_evt, void *p_context)
             break;
         case EVENT_CHANNEL_CLOSED:
             //communication has been lost
-            //try restarting up to 6 times if connection cannot be made (3 min total search time)
+            //try restarting up to 12 times if connection cannot be made (3 min total search time)
             restart_count += 1;
-            if (restart_count < 6)
+            if (restart_count < 12)
             {
                 sd_ant_channel_open(p_profile->channel_number);
                 ANT_Search_Start();
