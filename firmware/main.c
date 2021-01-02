@@ -623,7 +623,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   //turn motor power on/off - turn on bluetooth
   {
     // set flag to enable bluetooth on restart - needed because of interrupt priority
-    m_turn_bluetooth_on = true;
+    if (!nrf_gpio_pin_read(MINUS__PIN) == 0) m_turn_bluetooth_on = true;
   }
 
   m_button_long_press = true; //needed for app_release long press actions
@@ -775,14 +775,32 @@ void buttons_init(void)
 }
 void shutdown(void)
 {
-  // // all pins must be disabled or system will wakeup, similar to a reset after enter ultra low power mode
-  // // debug pins
-  // nrf_gpio_cfg_default(10);
-  //  nrf_gpio_cfg_default(9);
-
-  // enter in ultra low power mode
-
-  // sd_power_system_off();
+  nrf_gpio_pin_clear(19); //reset
+  nrf_delay_ms(10);
+  nrf_gpio_pin_clear(BUTTON_1); //button1
+  nrf_delay_ms(10);
+  app_timer_stop(led_timer);
+  nrf_delay_ms(10);
+  app_timer_stop(ANT_Search_timer);
+  nrf_delay_ms(10);
+  app_timer_stop(m_timer_button_press_timeout);
+  nrf_delay_ms(10);
+  app_timer_stop(m_timer_button_long_press_timeout);
+  nrf_delay_ms(10);
+  app_timer_stop(bluetooth_timer);
+  nrf_delay_ms(10);
+  sd_clock_hfclk_release();
+  nrf_delay_ms(10);
+  // Disable TWI ready for sleep
+  NRF_TWI0->ENABLE = TWI_ENABLE_ENABLE_Disabled << TWI_ENABLE_ENABLE_Pos;
+  nrf_delay_ms(10);
+  NRF_SPI0->ENABLE = 0;
+  nrf_delay_ms(10);
+  NRF_UART0->ENABLE = 0;
+  nrf_delay_ms(10);
+  // shut down the dcdc
+  sd_power_dcdc_mode_set(NRF_POWER_DCDC_DISABLE);
+  sd_power_pof_enable	(	0	)	;
   nrf_delay_ms(1000);
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
@@ -792,8 +810,8 @@ static void profile_setup(void)
   ret_code_t err_code;
   ant_search_config_t lev_search_config = DEFAULT_ANT_SEARCH_CONFIG(LEV_CHANNEL_NUM);
   ant_search_config_t controls_search_config = DEFAULT_ANT_SEARCH_CONFIG(CONTROLS_CHANNEL_NUM);
-  lev_search_config.low_priority_timeout = 2; //5 seconds
-  controls_search_config.low_priority_timeout = 2;//5 seconds
+  lev_search_config.low_priority_timeout = 2;       //5 seconds
+  controls_search_config.low_priority_timeout = 2;  //5 seconds
   lev_search_config.high_priority_timeout = 5;      //4*2.5 =10 seconds
   controls_search_config.high_priority_timeout = 5; //4*2.5 =10 seconds
 
@@ -1261,6 +1279,7 @@ void check_interrupt_flags(void)
   // now check for bluetooth flag on plus button press
   if (m_turn_bluetooth_on)
   {
+    m_turn_bluetooth_on=false;
     eeprom_write_variables(old_ant_device_id, 1, ebike, garmin, brake); // Enable BLUETOOTH on restart}
     wait_and_reset();
   }
@@ -1268,6 +1287,7 @@ void check_interrupt_flags(void)
   // finally check bluetooth timeout flag and minus button press
   if (m_turn_bluetooth_off)
   {
+     m_turn_bluetooth_off=false;
     eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake); // Disable BLUETOOTH on restart}
     wait_and_reset();
   }
@@ -1318,22 +1338,7 @@ void ram_retention_setup(void)
 #define NRF52_ONRAM0_OFFRAM0 POWER_RAM_POWER_S0POWER_Off << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_Off << POWER_RAM_POWER_S1POWER_Pos;
 
   // Configure nRF52 RAM retention parameters. Set for System Off 0kB RAM retention
-  NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[1].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[2].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[3].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[4].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[5].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[6].POWER = NRF52_ONRAM1_OFFRAM0;
-  NRF_POWER->RAM[7].POWER = NRF52_ONRAM1_OFFRAM0;
-#define NRF52_ONRAM1_OFFRAM1 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_On << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_On << POWER_RAM_POWER_S1RETENTION_Pos;
-
-#define NRF52_ONRAM1_OFFRAM0 POWER_RAM_POWER_S0POWER_On << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_On << POWER_RAM_POWER_S1POWER_Pos | POWER_RAM_POWER_S0RETENTION_Off << POWER_RAM_POWER_S0RETENTION_Pos | POWER_RAM_POWER_S1RETENTION_Off << POWER_RAM_POWER_S1RETENTION_Pos;
-
-#define NRF52_ONRAM0_OFFRAM0 POWER_RAM_POWER_S0POWER_Off << POWER_RAM_POWER_S0POWER_Pos | POWER_RAM_POWER_S1POWER_Off << POWER_RAM_POWER_S1POWER_Pos;
-
-  // Configure nRF52 RAM retention parameters. Set for System Off 0kB RAM retention
-  NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0;
+  NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0; //no ram in power off mode
   NRF_POWER->RAM[1].POWER = NRF52_ONRAM1_OFFRAM0;
   NRF_POWER->RAM[2].POWER = NRF52_ONRAM1_OFFRAM0;
   NRF_POWER->RAM[3].POWER = NRF52_ONRAM1_OFFRAM0;
@@ -1349,8 +1354,6 @@ void power_mgt_init(void)
   APP_ERROR_CHECK(err_code);
   //set up the pwr configuration
   sd_power_mode_set(NRF_POWER_MODE_LOWPWR);
-  NRF_SPI0->ENABLE = 0;
-  NRF_UART0->ENABLE = 0;
 }
 int main(void)
 {
