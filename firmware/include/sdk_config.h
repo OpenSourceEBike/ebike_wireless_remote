@@ -1279,7 +1279,7 @@
 // <i> Shutdown procedure will begin no earlier than after this number of seconds.
 
 #ifndef NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S
-#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S 3
+#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S 1
 #endif
 
 // </e>
@@ -1288,14 +1288,14 @@
  
 
 #ifndef NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED
-#define NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED 1
+#define NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED 0
 #endif
 
 // <q> NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY  - Blocked shutdown procedure will be retried every second.
  
 
 #ifndef NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY
-#define NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY 1
+#define NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY 0
 #endif
 
 // <q> NRF_PWR_MGMT_CONFIG_USE_SCHEDULER  - Module will use @ref app_scheduler.
@@ -1340,11 +1340,6 @@
 //==========================================================
 // <q> BUTTON_ENABLED  - Enables Button module
  
-// <q> BUTTON_HIGH_ACCURACY_ENABLED  - Enables GPIOTE high accuracy for buttons
-
-#ifndef BUTTON_HIGH_ACCURACY_ENABLED
-#define BUTTON_HIGH_ACCURACY_ENABLED 1
-#endif
 
 #ifndef BUTTON_ENABLED
 #define BUTTON_ENABLED 1
