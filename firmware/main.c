@@ -74,7 +74,7 @@ int8_t mask_number = 0;
 //softblink is the instance flag 1 means led busy, 0 or 2 means led ready
 uint8_t soft_blink = 0;
 
-#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50) /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
+#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
 //#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(20 * 1000)
 #define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000) // 1 seconds for long press
@@ -480,7 +480,7 @@ void ANT_Search_Start(void)
   ret_code_t err_code;
   err_code = app_timer_start(ANT_Search_timer, ANT_Search_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
-  led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+  led_pwm_on(R_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
 }
 static void ANT_Search_timeout(void *p_context)
 {
@@ -502,6 +502,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+      //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -513,6 +515,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+     //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -523,6 +527,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+     //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -561,23 +567,23 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   {
     if (ebike && !soft_blink)
     {
-      led_pwm_on(R_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(R_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
 
     if (garmin && !soft_blink)
     {
-      led_pwm_on(G_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(G_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
 
     //led 2 (blue) brake control active
     if (brake && !soft_blink)
     {
-      led_pwm_on(B_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(B_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
   }
@@ -598,7 +604,11 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+    //INDICATE ENTERING BOOTLOADER MODE
+    //RED+BLUE MASK
+    soft_blink = led_softblink_uninit();
+     led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
+     nrf_power_gpregret_set(BOOTLOADER_DFU_START);
     wait_and_reset();
   }
 
@@ -609,7 +619,7 @@ static void timer_button_long_press_timeout_handler(void *p_context)
     m_turn_bluetooth_on = true;
   }
 
-n_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))  if ((nrf_gpio_pi
+  if ((nrf_gpio_pin_read(MINUS__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
   {
     // set flag to enable bluetooth on restart - needed because of interrupt priority
     m_turn_bluetooth_off = true;
@@ -1394,7 +1404,11 @@ int main(void)
   new_ant_device_id = old_ant_device_id; //no change at this time.
 
   if (enable_bluetooth)
-  { //start the bluetooth 5 min timer
+    { 
+      //signal that bluetooth is active
+      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+      nrf_delay_ms(2000);
+      //start the bluetooth 5 min timer
     err_code = app_timer_start(bluetooth_timer, BLUETOOTH_TIMEOUT, NULL);
     APP_ERROR_CHECK(err_code);
     ble_init();
