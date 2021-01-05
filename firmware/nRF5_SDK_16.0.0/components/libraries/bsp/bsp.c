@@ -73,7 +73,7 @@ static void bsp_button_event_handler(uint8_t pin_no, uint8_t button_action);
 static const app_button_cfg_t app_buttons[BUTTONS_NUMBER] =
 {
     #ifdef BSP_BUTTON_0
-    {BSP_BUTTON_0, false, BUTTON_PULL,0,bsp_button_event_handler},
+    {BSP_BUTTON_0, false, BUTTON_PULL,bsp_button_event_handler},
     #endif // BUTTON_0
 
     #ifdef BSP_BUTTON_1

@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "nrf.h"
+//#include "nrf.h"
 //#include "hardfault.h"
-#include "app_error.h"
+//#include "app_error.h"
 #include "app_timer.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_sdh.h"
@@ -76,9 +76,10 @@ uint8_t soft_blink = 0;
 
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50)           /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
 #define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(60 * 60 * 1000) // 1h to enter low power mode
-#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000)      // 1 seconds for long press
-#define ANT_Search_TIMEOUT APP_TIMER_TICKS(300)              // 300 ms for Ant Search check
-#define DEVICE_NAME "TSDZ2_remote"                           /**< Name of device. Will be included in the advertising data. */
+//#define BUTTON_PRESS_TIMEOUT APP_TIMER_TICKS(20 * 1000)
+#define BUTTON_LONG_PRESS_TIMEOUT APP_TIMER_TICKS(1000) // 1 seconds for long press
+#define ANT_Search_TIMEOUT APP_TIMER_TICKS(300)         // 300 ms for Ant Search check
+#define DEVICE_NAME "TSDZ2_remote"                      /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -479,7 +480,7 @@ void ANT_Search_Start(void)
   ret_code_t err_code;
   err_code = app_timer_start(ANT_Search_timer, ANT_Search_TIMEOUT, NULL);
   APP_ERROR_CHECK(err_code);
-  led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+  led_pwm_on(R_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
 }
 static void ANT_Search_timeout(void *p_context)
 {
@@ -501,6 +502,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+      //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -512,6 +515,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+     //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -522,6 +527,8 @@ static void ANT_Search_timeout(void *p_context)
       soft_blink = led_softblink_uninit(); // turn off the soft_blink led
       err_code = app_timer_stop(ANT_Search_timer);
       APP_ERROR_CHECK(err_code);
+     //blink RED fast TO INDICATE CONNECTION
+      led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
     }
     return;
   }
@@ -560,23 +567,23 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   {
     if (ebike && !soft_blink)
     {
-      led_pwm_on(R_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(R_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
 
     if (garmin && !soft_blink)
     {
-      led_pwm_on(G_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(G_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
 
     //led 2 (blue) brake control active
     if (brake && !soft_blink)
     {
-      led_pwm_on(B_LED, 100, 99 - 1, 1, 100); //100 ms on
-      nrf_delay_ms(1000);
+      led_pwm_on(B_LED, 100, 99, 1, 100); //100 ms on
+      nrf_delay_ms(2000);
       soft_blink = led_softblink_uninit();
     }
   }
@@ -597,7 +604,11 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   if ((nrf_gpio_pin_read(ENTER__PIN) == 0) && (nrf_gpio_pin_read(STANDBY__PIN) == 0))
 
   {
-    nrf_power_gpregret_set(BOOTLOADER_DFU_START);
+    //INDICATE ENTERING BOOTLOADER MODE
+    //RED+BLUE MASK
+    soft_blink = led_softblink_uninit();
+     led_pwm_on(R_LED, 100, 0, 100, 1000); //fast flaSH
+     nrf_power_gpregret_set(BOOTLOADER_DFU_START);
     wait_and_reset();
   }
 
@@ -623,7 +634,8 @@ static void timer_button_long_press_timeout_handler(void *p_context)
   //turn motor power on/off - turn on bluetooth
   {
     // set flag to enable bluetooth on restart - needed because of interrupt priority
-    if (!nrf_gpio_pin_read(MINUS__PIN) == 0) m_turn_bluetooth_on = true;
+    if (!nrf_gpio_pin_read(MINUS__PIN) == 0)
+      m_turn_bluetooth_on = true;
   }
 
   m_button_long_press = true; //needed for app_release long press actions
@@ -738,10 +750,10 @@ void buttons_init(void)
   // the array must be static because a pointer to it will be saved in the button handler module
   static app_button_cfg_t buttons[4] =
       {
-          {(uint8_t)PLUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)MINUS__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)ENTER__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
-          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, 1, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
+          {(uint8_t)PLUS__PIN, APP_BUTTON_ACTIVE_LOW, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
+          {(uint8_t)MINUS__PIN, APP_BUTTON_ACTIVE_LOW, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
+          {(uint8_t)ENTER__PIN, APP_BUTTON_ACTIVE_LOW, GPIO_PIN_CNF_PULL_Pullup, button_event_handler},
+          {(uint8_t)STANDBY__PIN, APP_BUTTON_ACTIVE_LOW, GPIO_PIN_CNF_PULL_Pullup, button_event_handler}};
 
   err_code = app_button_init(buttons, ARRAY_SIZE(buttons), BUTTON_DETECTION_DELAY);
   // this will enable wakeup from ultra low power mode (any button press)
@@ -798,9 +810,23 @@ void shutdown(void)
   nrf_delay_ms(10);
   NRF_UART0->ENABLE = 0;
   nrf_delay_ms(10);
+
   // shut down the dcdc
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_DISABLE);
-  sd_power_pof_enable	(	0	)	;
+  sd_power_pof_enable(0);
+  nrf_delay_ms(100);
+  /*
+  nrf_gpio_cfg_default(LED1_G);
+  nrf_gpio_cfg_default(LED2_R);
+  nrf_gpio_cfg_default(LED2_G);
+  nrf_gpio_cfg_default(LED2_B);
+
+  */
+  nrf_gpio_cfg_default(BUTTON_1);
+  nrf_gpio_cfg_default(19);
+  sd_clock_hfclk_release();
+  nrf_delay_ms(10);
+
   nrf_delay_ms(1000);
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
@@ -1279,7 +1305,7 @@ void check_interrupt_flags(void)
   // now check for bluetooth flag on plus button press
   if (m_turn_bluetooth_on)
   {
-    m_turn_bluetooth_on=false;
+    m_turn_bluetooth_on = false;
     eeprom_write_variables(old_ant_device_id, 1, ebike, garmin, brake); // Enable BLUETOOTH on restart}
     wait_and_reset();
   }
@@ -1287,7 +1313,7 @@ void check_interrupt_flags(void)
   // finally check bluetooth timeout flag and minus button press
   if (m_turn_bluetooth_off)
   {
-     m_turn_bluetooth_off=false;
+    m_turn_bluetooth_off = false;
     eeprom_write_variables(old_ant_device_id, 0, ebike, garmin, brake); // Disable BLUETOOTH on restart}
     wait_and_reset();
   }
@@ -1359,6 +1385,7 @@ int main(void)
 {
   ret_code_t err_code;
   uint8_t enable_bluetooth = 0;
+
   //lfclk_config()
   ram_retention_setup();
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
@@ -1375,7 +1402,11 @@ int main(void)
   new_ant_device_id = old_ant_device_id; //no change at this time.
 
   if (enable_bluetooth)
-  { //start the bluetooth 5 min timer
+    { 
+      //signal that bluetooth is active
+      led_pwm_on(B_LED, 100, 0, 5, 0); // start soft_blink led, 0 for no timer
+      nrf_delay_ms(2000);
+      //start the bluetooth 5 min timer
     err_code = app_timer_start(bluetooth_timer, BLUETOOTH_TIMEOUT, NULL);
     APP_ERROR_CHECK(err_code);
     ble_init();
@@ -1387,7 +1418,6 @@ int main(void)
   // idle loop
   while (true)
   {
-    // sd_app_evt_wait(); //sleep in power on mode
     nrf_pwr_mgmt_run();
     check_interrupt_flags();
   }
