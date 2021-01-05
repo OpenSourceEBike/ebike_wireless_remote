@@ -787,7 +787,6 @@ void buttons_init(void)
 }
 void shutdown(void)
 {
-
   nrf_gpio_pin_clear(19); //reset
   nrf_delay_ms(10);
   nrf_gpio_pin_clear(BUTTON_1); //button1
@@ -804,7 +803,6 @@ void shutdown(void)
   nrf_delay_ms(10);
   sd_clock_hfclk_release();
   nrf_delay_ms(10);
-
   // Disable TWI ready for sleep
   NRF_TWI0->ENABLE = TWI_ENABLE_ENABLE_Disabled << TWI_ENABLE_ENABLE_Pos;
   nrf_delay_ms(10);
