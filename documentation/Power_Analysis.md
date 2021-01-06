@@ -12,7 +12,7 @@ If both Ant Lev and Ant Controls is active in the remote the average idle curren
 ![Figure 2](ant_lev+ctrl_idle.png)
 In **POWER IDLE** mode, the remote is powered on and ready to immediately process button commands.
 2. **POWER OFF MODE**
-   In this mode, the remote control turns off all  bluetooth and ANT wireless capabilities. The remote is put into a minimal power dissipation mode. The average power off current in this mode is 10.27 uA as shown below:
+   In this mode, the remote control turns off all  bluetooth and ANT wireless capabilities. The remote is put into a minimal power dissipation mode. The average power off current in this mode is only 0.44 uA as shown below:
    ![figure 3](deep_sleep.png)
 3. **ANT LEV TRANSMISSION MODE**
     In this mode, either the plus or minus button is pressed to increase or decrease the assist level on the ebike.
@@ -51,7 +51,7 @@ In **POWER IDLE** mode, the remote is powered on and ready to immediately proces
   FEP is the "Functional End Point" voltage at which the remote will no longer operate. (2 V). As can be seen from the power mode graphs above, the current peaks in the remote are between 10 and 15ma. We can therefore expect approximately 180 mah effective capacity from a CR2032 cell.
   This is the battery capacity used in the estimation of battery life.
    - The idle current is 66uA (see **POWER OFF MODE** above)
-   - the **POWER OFF** current is 11 uA
+   - the **POWER OFF** current is 0.6 uA
    - The wake current is 100 uA (see **ANT LEV TRANSMISSION MODE** above)
    
    - the average duration of a button click (where the board is in transmitting mode) is 58ms as measured below:
@@ -59,10 +59,10 @@ In **POWER IDLE** mode, the remote is powered on and ready to immediately proces
    -  The ebike is ridden 18hrs/week
    -  The remote control spends virtually no time in bluetooth mode. (bluetooth is used only when setting up the remote)
    - The Leds are used sparingly
-  Feeding these assumptions into the  [Battery Life Calculator](./Battery_Life_Calculator.xls) spreadsheet, the battery life is estimated to be **14 months**. 
+  Feeding these assumptions into the  [Battery Life Calculator](./Battery_Life_Calculator.xls) spreadsheet, the battery life is estimated to be **29 months!**. 
   ![figure 13](battery_life.png)
   ## Conclusion
-  Based on quite conservative assumptions, it is expected that the remote will continue functioning for at least a year. 
+  Based on quite conservative assumptions, it is expected that the remote will continue functioning well for at least a year. 
   **Replacing the battery annually is recommended.**
 ## [back](./battery.md)
  

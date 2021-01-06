@@ -31,12 +31,12 @@ __Instructions:__
    
 ![Figure 6](vdd_out.png)
 
-To ensure the dongle has the longest possible battery life it is necessary to put a small drop of solder on the SB1 pad on the bottom of the board to short it out.
+To ensure the dongle has the longest possible battery life it is necessary to cut the SB2 pad on the bottom of the board to open the circuit.
 
 ![](board_back.png)
 
-__Why do we need to short SB1?__
-Please note that the usual power supply of the nRF52840 Dongle is 5V supplied to the VBUS pin of the dongle; see the [schematic for the dongle](./pca10059_schematic_and_pcb.pdf). VBUS supplies power to a on-chip high voltage regulator of the nRF52840 SoC. The output of this regulator (3.3V) supplies the SoC and the LEDs. The short on SB1 shorts out this high voltage regulator and greatly improves power dissipation when using an external battery.
+__Why do we need to cut SB2?__
+Please note that the usual power supply of the nRF52840 Dongle is 5V supplied to the VBUS pin of the dongle; see the [schematic for the dongle](./pca10059_schematic_and_pcb.pdf). VBUS supplies power to a on-chip high voltage regulator of the nRF52840 SoC. The output of this regulator (3.3V) supplies the SoC and the LEDs. The cut on SB2 opens the connection to the high voltage regulator and greatly improves power dissipation when using an external battery (Power off mode dissipation improves from ~10uA to ~0.5uA - a 10X improvement. This improves the battery life from 1 to over 2 years!)
  
 3. **Connect the VLCD5 keypad**
    The VLCD5 handle bar remote keypad has 4 buttons and 5 wires (1 wire for each button and 1 common wire to all buttons). Connect the wires directly to the Nordic nrf52840 dongle. The pins to connect are 0.13, 0.15, 0.17, 0.20 and GND, corresponding to **PLUS, MINUS, ENTER and STANDBY** buttons on the remote keypad
