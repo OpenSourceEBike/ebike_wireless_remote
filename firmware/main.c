@@ -787,6 +787,7 @@ void buttons_init(void)
 }
 void shutdown(void)
 {
+  /*
   nrf_gpio_pin_clear(19); //reset
   nrf_delay_ms(10);
   nrf_gpio_pin_clear(BUTTON_1); //button1
@@ -815,18 +816,18 @@ void shutdown(void)
   sd_power_dcdc_mode_set(NRF_POWER_DCDC_DISABLE);
   sd_power_pof_enable(0);
   nrf_delay_ms(100);
-  /*
+  
   nrf_gpio_cfg_default(LED1_G);
   nrf_gpio_cfg_default(LED2_R);
   nrf_gpio_cfg_default(LED2_G);
   nrf_gpio_cfg_default(LED2_B);
 
-  */
+
   nrf_gpio_cfg_default(BUTTON_1);
   nrf_gpio_cfg_default(19);
   sd_clock_hfclk_release();
   nrf_delay_ms(10);
-
+*/
   nrf_delay_ms(1000);
   nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
 }
