@@ -1,5 +1,5 @@
 # Remote operation
-LED Operation Signals
+LED Operation Signalling
 ------
 1. ANT Searching/Connection
    When the remote is searching for either an ANT+ LEV or an ANT+ Controls connection, the RED LED will slowly flash. When a connection is made, the RED LED will quickly flash and then go out.
@@ -20,7 +20,7 @@ Short Press buttons
   
 Long Press Buttons
 -----
-
+* Long Press the STANDBY button to turn on/off the motor. See LED Operation Signalling above for a description of operation.
 * Long Press the [PLUS] button to pageup on a garmin bike computer
 * Long Press the [MINUS] button to pagedown on a garmin bike computer
 * Long press the [ENTER] button to cycle through the configuration LED display.     [See Configuration Options](configuration.md)
