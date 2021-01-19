@@ -1516,7 +1516,7 @@ int main(void)
   // idle loop
   while (true)
   {
-    nrf_pwr_mgmt_run();
+   
     nrf_pwr_mgmt_run();
     check_interrupt_flags();
   }
