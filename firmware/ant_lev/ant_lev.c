@@ -104,6 +104,11 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
     }
     else //long press actions
     {
+        if (button == STANDBY__PIN)
+        {
+           p_profile->page_16.current_front_gear=3; 
+           send_page = true;
+        }
         /*
         if (button == MINUS__PIN)
         {
@@ -162,7 +167,7 @@ bool buttons_send_page16(ant_lev_profile_t *p_profile, button_pins_t button, boo
             // nrf_delay_ms(50);
         }
         (void)err_code; // ignore
-        //nrf_delay_ms(50);
+      //  nrf_delay_ms(100);
     }
 
     if (send_page)
