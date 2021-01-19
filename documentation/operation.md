@@ -6,7 +6,9 @@ LED Operation Signals
 2. The RED LED will briefly flash to indicate a    long press has been made
 3. The RED LED will turn on for 2 seconds to indicated that the remote is entering DFU mode.
 4. The Blue LED will turn on for 2 seconds to indicated bluetooth mode is active.
-5. The configuration of the remote is signalled by a long press of the ENTER key. [See Configuration Options](configuration.md)
+5. A long press of the ENTER key can be used to determine the configuration options. [See Configuration Options](configuration.md)
+6. A long press of the STANDBY key will turn the motor ON or OFF. When the motor is initializing, the leds will flash white. When the motor is on, the white led will rapidly flash, followed 2 seconds later by a display of the motor battery state. If the motor is turning off, the battery state will also be displayed. Battery state is indicated by flashing the GREEN LED. The number of flashes will indicate battery charge state from from 1 flash (10% charge) to 10 flashes (100% charge).
+7. Motor error states are indicated by the green power LED on thee other side of the Nordic board. motor initialization errors are indicated by a slowly flashing LED, firmware mismatch errors are indicated by a fast flashing LED, and configutation errors are indicated by a steady on LED.
 
 
 Short Press buttons
